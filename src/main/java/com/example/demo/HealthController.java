@@ -16,7 +16,6 @@ public class HealthController {
             "javaVersion", System.getProperty("java.version")
         );
     }
-
     @GetMapping("/info")
     public AppInfo info() {
         return new AppInfo(
