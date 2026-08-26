@@ -8,11 +8,11 @@
 		<version>4.1.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.example</groupId>
-	<artifactId>demo</artifactId>
+	<groupId>com.deliverytech</groupId>
+	<artifactId>delivery-api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
+	<name>delivery-api</name>
+	<description>Aplicação de Delivery</description>
 	<url/>
 	<licenses>
 		<license/>
