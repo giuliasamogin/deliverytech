@@ -1,4 +1,4 @@
-package com.deliverytech.deliveryapi;
+package com.deliverytech.delivery_api;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -47,7 +47,7 @@ public class HealthController {
         AppInfo appInfo = new AppInfo(
             "Delivery Tech API",
             "1.0.0",
-            "SEU NOME AQUI", // <--- Coloque seu nome aqui!
+            "Giulia Samogin",
             System.getProperty("java.version"),
             "Spring Boot 3.2.x",
             LocalDateTime.now().format(FORMATTER),

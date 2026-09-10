@@ -1,13 +1,13 @@
-package com.example.demo;
+package com.deliverytech.delivery_api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class DemoApplication {
+public class DeliveryApiApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(DemoApplication.class, args);
+		SpringApplication.run(DeliveryApiApplication.class, args);
 	}
 
 }
