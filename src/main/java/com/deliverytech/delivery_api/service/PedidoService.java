@@ -1,40 +1,26 @@
 package com.deliverytech.delivery_api.service;
 
+import com.deliverytech.delivery_api.dto.resposta.ItemPedidoDTO;
+import com.deliverytech.delivery_api.dto.resposta.PedidoDTO;
+import com.deliverytech.delivery_api.dto.resposta.PedidoResponseDTO;
 import com.deliverytech.delivery_api.enums.StatusPedido;
-import com.deliverytech.delivery_api.model.Pedido;
-import com.deliverytech.delivery_api.repository.PedidoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
-@Service
-public class PedidoService {
+public interface PedidoService {
 
-    @Autowired
-    private PedidoRepository pedidoRepository;
+    PedidoResponseDTO criarPedido(PedidoDTO dto);
 
-    public Pedido cadastrar(Pedido pedido) {
-        return pedidoRepository.save(pedido);
-    }
+    PedidoResponseDTO buscarPedidoPorId(Long id);
 
-    public List<Pedido> listarTodos() {
-        return pedidoRepository.findAll();
-    }
+    List<PedidoResponseDTO> buscarPedidosPorCliente(Long clienteId);
 
-    public Pedido buscarPorId(Long id) {
-        return pedidoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Pedido não encontrado com o ID: " + id));
-    }
+    PedidoResponseDTO atualizarStatusPedido(Long id, StatusPedido status);
 
-    public Pedido atualizarStatus(Long id, StatusPedido novoStatus) {
-        Pedido pedido = buscarPorId(id);
-        pedido.setStatusPedido(novoStatus);
-        return pedidoRepository.save(pedido);
-    }
+    BigDecimal calcularTotalPedido(List<ItemPedidoDTO> itens);
 
-    public void deletar(Long id) {
-        Pedido pedido = buscarPorId(id);
-        pedidoRepository.delete(pedido);
-    }
+    void cancelarPedido(Long id);
+
+    List<PedidoResponseDTO> listarTodos();
 }

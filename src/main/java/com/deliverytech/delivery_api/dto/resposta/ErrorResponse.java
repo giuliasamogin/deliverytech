@@ -1,4 +1,4 @@
-package com.deliverytech.delivery_api.dto;
+package com.deliverytech.delivery_api.dto.resposta;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;

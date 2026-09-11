@@ -1,7 +1,7 @@
 package com.deliverytech.delivery_api.service.impl;
 
-import com.deliverytech.delivery_api.dto.ClienteDTO;
-import com.deliverytech.delivery_api.dto.ClienteResponseDTO;
+import com.deliverytech.delivery_api.dto.resposta.ClienteDTO;
+import com.deliverytech.delivery_api.dto.resposta.ClienteResponseDTO;
 import com.deliverytech.delivery_api.model.Cliente;
 import com.deliverytech.delivery_api.repository.ClienteRepository;
 import com.deliverytech.delivery_api.service.ClienteService;
@@ -28,7 +28,7 @@ public class ClienteServiceImpl implements ClienteService {
 
     @Override
     public ClienteResponseDTO cadastrarCliente(ClienteDTO dto) {
-        if (clienteRepository.existsByEmailAndAtivoTrue(dto.getEmail())) {
+        if (clienteRepository.findByEmail(dto.getEmail()).isPresent()) {
             throw new BusinessException("Email já Cadastrado: " + dto.getEmail());
         }
 
