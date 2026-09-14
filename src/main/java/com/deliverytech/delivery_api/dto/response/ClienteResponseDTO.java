@@ -1,4 +1,4 @@
-package com.deliverytech.delivery_api.dto.resposta;
+package com.deliverytech.delivery_api.dto.response;
 
 public class ClienteResponseDTO {
 

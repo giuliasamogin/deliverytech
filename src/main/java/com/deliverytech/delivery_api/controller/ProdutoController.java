@@ -1,5 +1,6 @@
 package com.deliverytech.delivery_api.controller;
 
+import com.deliverytech.delivery_api.dto.response.ApiResponseWrapper;
 import com.deliverytech.delivery_api.model.Produto;
 import com.deliverytech.delivery_api.service.ProdutoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,23 +18,39 @@ public class ProdutoController {
     private ProdutoService produtoService;
 
     @PostMapping
-    public ResponseEntity<Produto> cadastrar(@RequestBody Produto produto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(produtoService.cadastrar(produto));
+    public ResponseEntity<ApiResponseWrapper<Produto>> cadastrar(@RequestBody Produto produto) {
+        Produto criado = produtoService.cadastrar(produto);
+        ApiResponseWrapper<Produto> resposta = new ApiResponseWrapper<>(
+            true, criado, "Produto cadastrado com sucesso"
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(resposta);
     }
 
     @GetMapping
-    public ResponseEntity<List<Produto>> listar() {
-        return ResponseEntity.ok(produtoService.listarTodos());
+    public ResponseEntity<ApiResponseWrapper<List<Produto>>> listar() {
+        List<Produto> produtos = produtoService.listarTodos();
+        ApiResponseWrapper<List<Produto>> resposta = new ApiResponseWrapper<>(
+            true, produtos, "Produtos listados com sucesso"
+        );
+        return ResponseEntity.ok(resposta);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Produto> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(produtoService.buscarPorId(id));
+    public ResponseEntity<ApiResponseWrapper<Produto>> buscarPorId(@PathVariable Long id) {
+        Produto produto = produtoService.buscarPorId(id);
+        ApiResponseWrapper<Produto> resposta = new ApiResponseWrapper<>(
+            true, produto, "Produto encontrado com sucesso"
+        );
+        return ResponseEntity.ok(resposta);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Produto> atualizar(@PathVariable Long id, @RequestBody Produto produto) {
-        return ResponseEntity.ok(produtoService.atualizar(id, produto));
+    public ResponseEntity<ApiResponseWrapper<Produto>> atualizar(@PathVariable Long id, @RequestBody Produto produto) {
+        Produto atualizado = produtoService.atualizar(id, produto);
+        ApiResponseWrapper<Produto> resposta = new ApiResponseWrapper<>(
+            true, atualizado, "Produto atualizado com sucesso"
+        );
+        return ResponseEntity.ok(resposta);
     }
 
     @DeleteMapping("/{id}")

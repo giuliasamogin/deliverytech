@@ -6,9 +6,8 @@ import java.util.List;
 
 public class CategoriaValidator implements ConstraintValidator<ValidCategoria, String> {
 
-    // ⚠️ Lista provisória, baseada nos exemplos dos slides — confirmar com o professor
     private static final List<String> CATEGORIAS_VALIDAS = List.of(
-        "ITALIANA", "JAPONESA", "BRASILEIRA", "PIZZA", "MEXICANA", "CHINESA", "ARABE", "FAST_FOOD"
+        "Italiana", "Brasileira", "Japonesa", "Mexicana", "Árabe"
     );
 
     @Override
@@ -16,6 +15,6 @@ public class CategoriaValidator implements ConstraintValidator<ValidCategoria, S
         if (value == null || value.isEmpty()) {
             return true;
         }
-        return CATEGORIAS_VALIDAS.contains(value.toUpperCase());
+        return CATEGORIAS_VALIDAS.contains(value);
     }
 }

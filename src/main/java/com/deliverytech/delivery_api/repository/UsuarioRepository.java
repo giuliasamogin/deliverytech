@@ -1,4 +1,3 @@
-/* 
 package com.deliverytech.delivery_api.repository;
 
 import com.deliverytech.delivery_api.model.Usuario;
@@ -8,5 +7,5 @@ import java.util.Optional;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByEmail(String email);
+    boolean existsByEmail(String email);
 }
-*/

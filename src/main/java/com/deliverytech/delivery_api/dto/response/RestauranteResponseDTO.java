@@ -1,36 +1,18 @@
-package com.deliverytech.delivery_api.model;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+package com.deliverytech.delivery_api.dto.response;
 
 import java.math.BigDecimal;
 
-@Entity
-public class Restaurante {
+public class RestauranteResponseDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String nome;
-
     private String categoria;
-
     private String endereco;
-
     private String telefone;
-
     private BigDecimal taxaEntrega;
-
     private Integer tempoEntrega;
-
     private String horarioFuncionamento;
-
-    private Boolean ativo;
-
-    private Double avaliacao; // Adicionado para satisfazer o RestauranteRepository
+    private boolean ativo;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -56,9 +38,6 @@ public class Restaurante {
     public String getHorarioFuncionamento() { return horarioFuncionamento; }
     public void setHorarioFuncionamento(String horarioFuncionamento) { this.horarioFuncionamento = horarioFuncionamento; }
 
-    public Boolean getAtivo() { return ativo; }
-    public void setAtivo(Boolean ativo) { this.ativo = ativo; }
-
-    public Double getAvaliacao() { return avaliacao; }
-    public void setAvaliacao(Double avaliacao) { this.avaliacao = avaliacao; }
+    public boolean isAtivo() { return ativo; }
+    public void setAtivo(boolean ativo) { this.ativo = ativo; }
 }

@@ -1,9 +1,9 @@
 package com.deliverytech.delivery_api.service.impl;
 
-import com.deliverytech.delivery_api.dto.resposta.PedidoDTO;
-import com.deliverytech.delivery_api.dto.resposta.ItemPedidoDTO;
-import com.deliverytech.delivery_api.dto.resposta.PedidoResponseDTO;
-import com.deliverytech.delivery_api.dto.resposta.ItemPedidoResponseDTO;
+import com.deliverytech.delivery_api.dto.response.ItemPedidoDTO;
+import com.deliverytech.delivery_api.dto.response.ItemPedidoResponseDTO;
+import com.deliverytech.delivery_api.dto.response.PedidoDTO;
+import com.deliverytech.delivery_api.dto.response.PedidoResponseDTO;
 import com.deliverytech.delivery_api.enums.StatusPedido;
 import com.deliverytech.delivery_api.exceptions.BusinessException;
 import com.deliverytech.delivery_api.exceptions.EntityNotFoundException;
@@ -101,6 +101,9 @@ public class PedidoServiceImpl implements PedidoService {
         pedido.setTaxaEntrega(TAXA_ENTREGA_PADRAO);
         pedido.setValorTotal(valorTotal);
         pedido.setItens(itensPedido);
+        pedido.setEnderecoEntrega(dto.getEnderecoEntrega());
+        pedido.setCepEntrega(dto.getCepEntrega());
+        pedido.setFormaPagamento(dto.getFormaPagamento());
 
         for (ItemPedido item : itensPedido) {
             item.setPedido(pedido);
@@ -176,6 +179,9 @@ public class PedidoServiceImpl implements PedidoService {
         dto.setNomeCliente(pedido.getCliente().getNome());
         dto.setRestauranteId(pedido.getRestaurante().getId());
         dto.setNomeRestaurante(pedido.getRestaurante().getNome());
+        dto.setEnderecoEntrega(pedido.getEnderecoEntrega());
+        dto.setCepEntrega(pedido.getCepEntrega());
+        dto.setFormaPagamento(pedido.getFormaPagamento());
 
         List<ItemPedidoResponseDTO> itensDto = pedido.getItens().stream().map(item -> {
             ItemPedidoResponseDTO itemDto = new ItemPedidoResponseDTO();

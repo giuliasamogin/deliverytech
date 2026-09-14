@@ -1,9 +1,11 @@
 package com.deliverytech.delivery_api.controller;
 
-import com.deliverytech.delivery_api.dto.resposta.PedidoResponseDTO;
-import com.deliverytech.delivery_api.dto.resposta.PedidoDTO;
+import com.deliverytech.delivery_api.dto.response.ApiResponseWrapper;
+import com.deliverytech.delivery_api.dto.response.PedidoDTO;
+import com.deliverytech.delivery_api.dto.response.PedidoResponseDTO;
 import com.deliverytech.delivery_api.enums.StatusPedido;
 import com.deliverytech.delivery_api.service.PedidoService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,35 +19,31 @@ public class PedidoController {
     private PedidoService pedidoService;
 
     @PostMapping
-    public ResponseEntity<PedidoResponseDTO> cadastrar(@RequestBody PedidoDTO pedido) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(pedidoService.criarPedido(pedido));
+    public ResponseEntity<ApiResponseWrapper<PedidoResponseDTO>> cadastrar(@Valid @RequestBody PedidoDTO pedido) {
+        PedidoResponseDTO criado = pedidoService.criarPedido(pedido);
+        ApiResponseWrapper<PedidoResponseDTO> resposta = new ApiResponseWrapper<>(
+            true, criado, "Pedido criado com sucesso"
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(resposta);
     }
-
-    // ATENÇÃO: não existe método "listar todos" no Service ainda.
-    // Comentei por enquanto — precisa decidir se cria esse método no Service
-    // (ex: usando pedidoRepository.findAll()) ou remove este endpoint.
-    /*
-    @GetMapping
-    public ResponseEntity<List<PedidoResponseDTO>> listar() {
-        return ResponseEntity.ok(pedidoService.listarTodos());
-    }
-    */
 
     @GetMapping("/{id}")
-    public ResponseEntity<PedidoResponseDTO> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(pedidoService.buscarPedidoPorId(id));
+    public ResponseEntity<ApiResponseWrapper<PedidoResponseDTO>> buscarPorId(@PathVariable Long id) {
+        PedidoResponseDTO pedido = pedidoService.buscarPedidoPorId(id);
+        ApiResponseWrapper<PedidoResponseDTO> resposta = new ApiResponseWrapper<>(
+            true, pedido, "Pedido encontrado com sucesso"
+        );
+        return ResponseEntity.ok(resposta);
     }
 
     @PutMapping("/{pedidoId}/status")
-    public ResponseEntity<?> atualizarStatus(@PathVariable Long pedidoId, @RequestParam StatusPedido status) {
-        try {
-            PedidoResponseDTO pedidoAtualizado = pedidoService.atualizarStatusPedido(pedidoId, status);
-            return ResponseEntity.ok(pedidoAtualizado);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Erro: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro interno do servidor");
-        }
+    public ResponseEntity<ApiResponseWrapper<PedidoResponseDTO>> atualizarStatus(
+            @PathVariable Long pedidoId, @RequestParam StatusPedido status) {
+        PedidoResponseDTO pedidoAtualizado = pedidoService.atualizarStatusPedido(pedidoId, status);
+        ApiResponseWrapper<PedidoResponseDTO> resposta = new ApiResponseWrapper<>(
+            true, pedidoAtualizado, "Status do pedido atualizado com sucesso"
+        );
+        return ResponseEntity.ok(resposta);
     }
 
     @DeleteMapping("/{id}")

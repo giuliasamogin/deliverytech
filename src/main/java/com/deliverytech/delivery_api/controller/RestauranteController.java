@@ -1,7 +1,11 @@
 package com.deliverytech.delivery_api.controller;
 
-import com.deliverytech.delivery_api.model.Restaurante;
+
+import com.deliverytech.delivery_api.dto.request.RestauranteReqDTO;
+import com.deliverytech.delivery_api.dto.response.ApiResponseWrapper;
+import com.deliverytech.delivery_api.dto.response.RestauranteResponseDTO;
 import com.deliverytech.delivery_api.service.RestauranteService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,23 +21,40 @@ public class RestauranteController {
     private RestauranteService restauranteService;
 
     @PostMapping
-    public ResponseEntity<Restaurante> cadastrar(@RequestBody Restaurante restaurante) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(restauranteService.cadastrar(restaurante));
+    public ResponseEntity<ApiResponseWrapper<RestauranteResponseDTO>> cadastrar(@Valid @RequestBody RestauranteReqDTO dto) {
+        RestauranteResponseDTO criado = restauranteService.cadastrar(dto);
+        ApiResponseWrapper<RestauranteResponseDTO> resposta = new ApiResponseWrapper<>(
+            true, criado, "Restaurante cadastrado com sucesso"
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(resposta);
     }
 
     @GetMapping
-    public ResponseEntity<List<Restaurante>> listar() {
-        return ResponseEntity.ok(restauranteService.listarTodos());
+    public ResponseEntity<ApiResponseWrapper<List<RestauranteResponseDTO>>> listar() {
+        List<RestauranteResponseDTO> restaurantes = restauranteService.listarTodos();
+        ApiResponseWrapper<List<RestauranteResponseDTO>> resposta = new ApiResponseWrapper<>(
+            true, restaurantes, "Restaurantes listados com sucesso"
+        );
+        return ResponseEntity.ok(resposta);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Restaurante> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(restauranteService.buscarPorId(id));
+    public ResponseEntity<ApiResponseWrapper<RestauranteResponseDTO>> buscarPorId(@PathVariable Long id) {
+        RestauranteResponseDTO restaurante = restauranteService.buscarPorId(id);
+        ApiResponseWrapper<RestauranteResponseDTO> resposta = new ApiResponseWrapper<>(
+            true, restaurante, "Restaurante encontrado com sucesso"
+        );
+        return ResponseEntity.ok(resposta);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Restaurante> atualizar(@PathVariable Long id, @RequestBody Restaurante restaurante) {
-        return ResponseEntity.ok(restauranteService.atualizar(id, restaurante));
+    public ResponseEntity<ApiResponseWrapper<RestauranteResponseDTO>> atualizar(
+            @PathVariable Long id, @Valid @RequestBody RestauranteReqDTO dto) {
+        RestauranteResponseDTO atualizado = restauranteService.atualizar(id, dto);
+        ApiResponseWrapper<RestauranteResponseDTO> resposta = new ApiResponseWrapper<>(
+            true, atualizado, "Restaurante atualizado com sucesso"
+        );
+        return ResponseEntity.ok(resposta);
     }
 
     @DeleteMapping("/{id}")

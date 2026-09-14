@@ -1,39 +1,19 @@
 package com.deliverytech.delivery_api.service;
 
-import com.deliverytech.delivery_api.model.Restaurante;
-import com.deliverytech.delivery_api.repository.RestauranteRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import com.deliverytech.delivery_api.dto.request.RestauranteReqDTO;
+import com.deliverytech.delivery_api.dto.response.RestauranteResponseDTO;
 
 import java.util.List;
 
-@Service
-public class RestauranteService {
+public interface RestauranteService {
 
-    @Autowired
-    private RestauranteRepository restauranteRepository;
+    RestauranteResponseDTO cadastrar(RestauranteReqDTO dto);
 
-    public Restaurante cadastrar(Restaurante restaurante) {
-        return restauranteRepository.save(restaurante);
-    }
+    List<RestauranteResponseDTO> listarTodos();
 
-    public List<Restaurante> listarTodos() {
-        return restauranteRepository.findAll();
-    }
+    RestauranteResponseDTO buscarPorId(Long id);
 
-    public Restaurante buscarPorId(Long id) {
-        return restauranteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Restaurante não encontrado com o ID: " + id));
-    }
+    RestauranteResponseDTO atualizar(Long id, RestauranteReqDTO dto);
 
-    public Restaurante atualizar(Long id, Restaurante restauranteAtualizado) {
-        Restaurante restaurante = buscarPorId(id);
-        restaurante.setNome(restauranteAtualizado.getNome());
-        return restauranteRepository.save(restaurante);
-    }
-
-    public void deletar(Long id) {
-        Restaurante restaurante = buscarPorId(id);
-        restauranteRepository.delete(restaurante);
-    }
+    void deletar(Long id);
 }

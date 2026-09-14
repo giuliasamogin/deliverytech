@@ -1,4 +1,4 @@
-package com.deliverytech.delivery_api.dto.resposta;
+package com.deliverytech.delivery_api.dto.response;
 
 import com.deliverytech.delivery_api.enums.StatusPedido;
 
@@ -20,6 +20,9 @@ public class PedidoResponseDTO {
     private Long restauranteId;
     private String nomeRestaurante;
     private List<ItemPedidoResponseDTO> itens;
+    private String enderecoEntrega;
+    private String cepEntrega;
+    private String formaPagamento;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -56,4 +59,13 @@ public class PedidoResponseDTO {
 
     public List<ItemPedidoResponseDTO> getItens() { return itens; }
     public void setItens(List<ItemPedidoResponseDTO> itens) { this.itens = itens; }
+
+    public String getEnderecoEntrega() { return enderecoEntrega; }
+    public void setEnderecoEntrega(String enderecoEntrega) { this.enderecoEntrega = enderecoEntrega; }
+
+    public String getCepEntrega() { return cepEntrega; }
+    public void setCepEntrega(String cepEntrega) { this.cepEntrega = cepEntrega; }
+
+    public String getFormaPagamento() { return formaPagamento; }
+    public void setFormaPagamento(String formaPagamento) { this.formaPagamento = formaPagamento; }
 }
