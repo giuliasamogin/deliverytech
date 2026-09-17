@@ -17,6 +17,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     List<Pedido> findByStatusPedido(StatusPedido statusPedido);
     List<Pedido> findTop10ByOrderByDataPedidoDesc();
     List<Pedido> findByDataPedidoBetween(LocalDateTime inicio, LocalDateTime fim);
+    List<Pedido> findByRestauranteId(Long restauranteId);
 
     @Query("SELECT p FROM Pedido p WHERE p.statusPedido = :status AND p.dataPedido BETWEEN :inicio AND :fim")
     List<Pedido> buscarPorStatusEPeriodo(@Param("status") StatusPedido status, 

@@ -3,7 +3,7 @@ package com.deliverytech.delivery_api.service.impl;
 import com.deliverytech.delivery_api.model.Cliente;
 import com.deliverytech.delivery_api.repository.ClienteRepository;
 import com.deliverytech.delivery_api.service.ClienteService;
-import com.deliverytech.delivery_api.dto.response.ClienteDTO;
+import com.deliverytech.delivery_api.dto.request.ClienteDTO;
 import com.deliverytech.delivery_api.dto.response.ClienteResponseDTO;
 import com.deliverytech.delivery_api.exceptions.BusinessException;
 import com.deliverytech.delivery_api.exceptions.EntityNotFoundException;

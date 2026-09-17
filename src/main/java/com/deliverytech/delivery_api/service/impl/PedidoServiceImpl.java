@@ -1,8 +1,10 @@
 package com.deliverytech.delivery_api.service.impl;
 
-import com.deliverytech.delivery_api.dto.response.ItemPedidoDTO;
+import com.deliverytech.delivery_api.dto.request.CalculoPedidoDTO;
+import com.deliverytech.delivery_api.dto.request.ItemPedidoDTO;
+import com.deliverytech.delivery_api.dto.request.PedidoDTO;
+import com.deliverytech.delivery_api.dto.response.CalculoPedidoResponseDTO;
 import com.deliverytech.delivery_api.dto.response.ItemPedidoResponseDTO;
-import com.deliverytech.delivery_api.dto.response.PedidoDTO;
 import com.deliverytech.delivery_api.dto.response.PedidoResponseDTO;
 import com.deliverytech.delivery_api.enums.StatusPedido;
 import com.deliverytech.delivery_api.exceptions.BusinessException;
@@ -19,6 +21,8 @@ import com.deliverytech.delivery_api.repository.RestauranteRepository;
 import com.deliverytech.delivery_api.service.PedidoService;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,26 +49,20 @@ public class PedidoServiceImpl implements PedidoService {
     @Autowired
     private ProdutoRepository produtoRepository;
 
-    // taxa de entrega fixa por enquanto - ainda não temos essa regra no Restaurante
-    private static final BigDecimal TAXA_ENTREGA_PADRAO = new BigDecimal("5.00");
-
     @Override
     public PedidoResponseDTO criarPedido(PedidoDTO dto) {
-        // 1. Validar cliente existe e está ativo
         Cliente cliente = clienteRepository.findById(dto.getClienteId())
                 .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado com ID: " + dto.getClienteId()));
         if (!cliente.getAtivo()) {
             throw new BusinessException("Cliente inativo não pode fazer pedidos");
         }
 
-        // 2. Validar restaurante existe e está ativo
         Restaurante restaurante = restauranteRepository.findById(dto.getRestauranteId())
                 .orElseThrow(() -> new EntityNotFoundException("Restaurante não encontrado com ID: " + dto.getRestauranteId()));
         if (!restaurante.getAtivo()) {
             throw new BusinessException("Restaurante não está ativo no momento");
         }
 
-        // 3. Validar produtos e criar os itens
         List<ItemPedido> itensPedido = new ArrayList<>();
         for (ItemPedidoDTO itemDto : dto.getItens()) {
             Produto produto = produtoRepository.findById(itemDto.getProdutoId())
@@ -84,13 +82,14 @@ public class PedidoServiceImpl implements PedidoService {
             itensPedido.add(item);
         }
 
-        // 4. Calcular valores
         BigDecimal subtotal = itensPedido.stream()
                 .map(item -> item.getPrecoUnitario().multiply(BigDecimal.valueOf(item.getQuantidade())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal valorTotal = subtotal.add(TAXA_ENTREGA_PADRAO);
 
-        // 5. Montar e salvar o pedido
+        // usa a taxa de entrega DE VERDADE do restaurante agora
+        BigDecimal taxaEntrega = restaurante.getTaxaEntrega() != null ? restaurante.getTaxaEntrega() : BigDecimal.ZERO;
+        BigDecimal valorTotal = subtotal.add(taxaEntrega);
+
         Pedido pedido = new Pedido();
         pedido.setNumeroPedido(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         pedido.setCliente(cliente);
@@ -98,7 +97,7 @@ public class PedidoServiceImpl implements PedidoService {
         pedido.setDataPedido(LocalDateTime.now());
         pedido.setStatusPedido(StatusPedido.RECEBIDO);
         pedido.setSubtotal(subtotal);
-        pedido.setTaxaEntrega(TAXA_ENTREGA_PADRAO);
+        pedido.setTaxaEntrega(taxaEntrega);
         pedido.setValorTotal(valorTotal);
         pedido.setItens(itensPedido);
         pedido.setEnderecoEntrega(dto.getEnderecoEntrega());
@@ -110,8 +109,6 @@ public class PedidoServiceImpl implements PedidoService {
         }
 
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
-
-        // 6. Retornar DTO de resposta
         return converterParaResponseDTO(pedidoSalvo);
     }
 
@@ -132,24 +129,48 @@ public class PedidoServiceImpl implements PedidoService {
     }
 
     @Override
-    public PedidoResponseDTO atualizarStatusPedido(Long id, StatusPedido status) {
+    @Transactional(readOnly = true)
+    public List<PedidoResponseDTO> buscarPedidosPorRestaurante(Long restauranteId, StatusPedido status) {
+        return pedidoRepository.findByRestauranteId(restauranteId).stream()
+                .filter(pedido -> status == null || status.equals(pedido.getStatusPedido()))
+                .map(this::converterParaResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PedidoResponseDTO> listarPedidos(Pageable pageable) {
+        return pedidoRepository.findAll(pageable)
+                .map(this::converterParaResponseDTO);
+    }
+
+    @Override
+    public PedidoResponseDTO atualizarStatusPedido(Long id, StatusPedido novoStatus) {
         Pedido pedido = pedidoRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Pedido não encontrado com ID: " + id));
-        pedido.setStatusPedido(status);
+
+        StatusPedido statusAtual = pedido.getStatusPedido();
+        if (!isTransicaoValida(statusAtual, novoStatus)) {
+            throw new BusinessException("Transição de status inválida: " + statusAtual + " -> " + novoStatus);
+        }
+
+        pedido.setStatusPedido(novoStatus);
         Pedido pedidoAtualizado = pedidoRepository.save(pedido);
         return converterParaResponseDTO(pedidoAtualizado);
     }
 
     @Override
-    public BigDecimal calcularTotalPedido(List<ItemPedidoDTO> itens) {
-        BigDecimal subtotal = BigDecimal.ZERO;
-        for (ItemPedidoDTO itemDto : itens) {
+    @Transactional(readOnly = true)
+    public CalculoPedidoResponseDTO calcularTotalPedido(CalculoPedidoDTO dto) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Object itemObj : dto.getItens()) {
+            ItemPedidoDTO itemDto = (ItemPedidoDTO) itemObj;
             Produto produto = produtoRepository.findById(itemDto.getProdutoId())
                     .orElseThrow(() -> new EntityNotFoundException("Produto não encontrado com ID: " + itemDto.getProdutoId()));
-            BigDecimal precoItem = BigDecimal.valueOf(produto.getPreco()).multiply(BigDecimal.valueOf(itemDto.getQuantidade()));
-            subtotal = subtotal.add(precoItem);
+            BigDecimal subtotalItem = BigDecimal.valueOf(produto.getPreco()).multiply(BigDecimal.valueOf(itemDto.getQuantidade()));
+            total = total.add(subtotalItem);
         }
-        return subtotal.add(TAXA_ENTREGA_PADRAO);
+        return new CalculoPedidoResponseDTO(total);
     }
 
     @Override
@@ -157,7 +178,7 @@ public class PedidoServiceImpl implements PedidoService {
         Pedido pedido = pedidoRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Pedido não encontrado com ID: " + id));
 
-        if (pedido.getStatusPedido() == StatusPedido.ENTREGUE || pedido.getStatusPedido() == StatusPedido.CANCELADO) {
+        if (!podeSerCancelado(pedido.getStatusPedido())) {
             throw new BusinessException("Pedido não pode ser cancelado no status atual: " + pedido.getStatusPedido());
         }
 
@@ -165,7 +186,34 @@ public class PedidoServiceImpl implements PedidoService {
         pedidoRepository.save(pedido);
     }
 
-    // Método auxiliar: converte Pedido (entidade) em PedidoResponseDTO
+    @Override
+    @Transactional(readOnly = true)
+    public List<PedidoResponseDTO> listarTodos() {
+        return pedidoRepository.findAll().stream()
+                .map(this::converterParaResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+    // ⚠️ Adaptado para o SEU enum (RECEBIDO como status inicial) — confirme com o professor se essa sequência está certa
+    private boolean isTransicaoValida(StatusPedido statusAtual, StatusPedido novoStatus) {
+        switch (statusAtual) {
+            case RECEBIDO:
+                return novoStatus == StatusPedido.CONFIRMADO || novoStatus == StatusPedido.CANCELADO;
+            case CONFIRMADO:
+                return novoStatus == StatusPedido.EM_PREPARO || novoStatus == StatusPedido.CANCELADO;
+            case EM_PREPARO:
+                return novoStatus == StatusPedido.SAIU_PARA_ENTREGA;
+            case SAIU_PARA_ENTREGA:
+                return novoStatus == StatusPedido.ENTREGUE;
+            default:
+                return false;
+        }
+    }
+
+    private boolean podeSerCancelado(StatusPedido status) {
+        return status == StatusPedido.RECEBIDO || status == StatusPedido.CONFIRMADO;
+    }
+
     private PedidoResponseDTO converterParaResponseDTO(Pedido pedido) {
         PedidoResponseDTO dto = new PedidoResponseDTO();
         dto.setId(pedido.getId());
@@ -195,13 +243,5 @@ public class PedidoServiceImpl implements PedidoService {
         dto.setItens(itensDto);
 
         return dto;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<PedidoResponseDTO> listarTodos() {
-            return pedidoRepository.findAll().stream()
-            .map(this::converterParaResponseDTO)
-            .collect(Collectors.toList());
     }
 }

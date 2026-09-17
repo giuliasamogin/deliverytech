@@ -1,6 +1,6 @@
 package com.deliverytech.delivery_api.controller;
 
-import com.deliverytech.delivery_api.dto.response.ClienteDTO;
+import com.deliverytech.delivery_api.dto.request.ClienteDTO;
 import com.deliverytech.delivery_api.dto.response.ClienteResponseDTO;
 import com.deliverytech.delivery_api.service.ClienteService;
 import jakarta.validation.Valid;

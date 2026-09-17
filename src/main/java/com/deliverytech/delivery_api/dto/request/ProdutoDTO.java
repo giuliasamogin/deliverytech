@@ -1,4 +1,4 @@
-package com.deliverytech.delivery_api.dto.response;
+package com.deliverytech.delivery_api.dto.request;
 
 import com.deliverytech.delivery_api.validation.ValidCategoria;
 import jakarta.validation.constraints.DecimalMax;

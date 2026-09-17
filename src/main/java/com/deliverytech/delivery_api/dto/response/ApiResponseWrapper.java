@@ -29,6 +29,15 @@ public class ApiResponseWrapper<T> {
         this.timestamp = LocalDateTime.now();
     }
 
+    public static <T> ApiResponseWrapper<T> success(T data, String message) {
+        return new ApiResponseWrapper<>(true, data, message);
+    }
+
+    public static <T> ApiResponseWrapper<T> error(String message) {
+        return new ApiResponseWrapper<>(false, null, message);
+    }
+
+
     public boolean isSuccess() { return success; }
     public void setSuccess(boolean success) { this.success = success; }
 

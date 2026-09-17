@@ -2,7 +2,18 @@ package com.deliverytech.delivery_api.exceptions;
 
 public class ConflictException extends BusinessException {
 
-    public ConflictException(String entity, String field) {
-        super(String.format("%s com %s já existe", entity, field), "entity.conflict");
+    private String conflictField;
+    private Object conflictValue;
+
+    public ConflictException(String message) {
+        super(message);
+        this.setErrorCode("CONFLICT");
+    }
+
+    public ConflictException(String message, String conflictField, Object conflictValue) {
+        super(message);
+        this.conflictField = conflictField;
+        this.conflictValue = conflictValue;
+        this.setErrorCode(conflictField);
     }
 }

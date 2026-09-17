@@ -1,11 +1,14 @@
 package com.deliverytech.delivery_api.service;
 
-import com.deliverytech.delivery_api.dto.response.ItemPedidoDTO;
-import com.deliverytech.delivery_api.dto.response.PedidoDTO;
+import com.deliverytech.delivery_api.dto.request.CalculoPedidoDTO;
+import com.deliverytech.delivery_api.dto.request.PedidoDTO;
+import com.deliverytech.delivery_api.dto.response.CalculoPedidoResponseDTO;
 import com.deliverytech.delivery_api.dto.response.PedidoResponseDTO;
 import com.deliverytech.delivery_api.enums.StatusPedido;
 
-import java.math.BigDecimal;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 public interface PedidoService {
@@ -16,9 +19,13 @@ public interface PedidoService {
 
     List<PedidoResponseDTO> buscarPedidosPorCliente(Long clienteId);
 
+    List<PedidoResponseDTO> buscarPedidosPorRestaurante(Long restauranteId, StatusPedido status);
+
+    Page<PedidoResponseDTO> listarPedidos(Pageable pageable);
+
     PedidoResponseDTO atualizarStatusPedido(Long id, StatusPedido status);
 
-    BigDecimal calcularTotalPedido(List<ItemPedidoDTO> itens);
+    CalculoPedidoResponseDTO calcularTotalPedido(CalculoPedidoDTO dto);
 
     void cancelarPedido(Long id);
 
