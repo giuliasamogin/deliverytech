@@ -1,26 +1,48 @@
 # Delivery Tech API
 
-Sistema de delivery desenvolvido com Spring Boot e Java 21.
+Sistema de delivery desenvolvido em Java 21 com Spring Boot. Gerencia clientes, restaurantes, produtos e pedidos, com login seguro, monitoramento e entrega automatizada.
 
 ## Tecnologias
 - Java 21
-- Spring Boot
-- Spring Web
-- Spring Data JPA
-- H2 Database
+- Spring Boot 3.2.5 (Web, Data JPA, Security)
+- MySQL 8
 - Maven
+- Docker e Docker Compose
+- Prometheus (métricas) e Zipkin (rastreamento)
+- Swagger (documentação da API)
+- GitHub Actions (integração contínua)
+
+## Funcionalidades
+- Cadastro e consulta de clientes, restaurantes, produtos e pedidos
+- Autenticação com token JWT (rotas protegidas pedem login)
+- Painel de monitoramento com pedidos, receita, memória, CPU e saúde do sistema
+- Identificador de rastreio (X-Correlation-ID) em cada requisição
+- Carga automática de dados de teste ao iniciar
 
 ## Como executar
-1. Ter o JDK 21 instalado
-2. Clonar o repositório
-3. Executar: `./mvnw spring-boot:run`
-4. Acessar: http://localhost:8080/health
+Pré-requisitos: JDK 21 e Docker Desktop instalados.
 
-## ## Endpoints
-- `GET /health` - Status da aplicação
-- `GET /info` - Informações da aplicação
-- `GET /clientes` - Listagem e cadastro de clientes
-- `GET /h2-console` - Console do banco de dados H2 (`jdbc:h2:mem:deliverydb`)
+1. Clone o repositório:
+   `git clone https://github.com/giuliasamogin/deliverytech.git`
+2. Entre na pasta do projeto.
+3. Gere o JAR (no Windows):
+   `.\mvnw.cmd clean package -DskipTests`
+4. Suba todos os containers (api, banco, Prometheus e Zipkin):
+   `docker-compose up --build`
+5. Espere aparecer `Started DeliveryApiApplication` no terminal.
+6. Para parar: `Ctrl + C` e depois `docker-compose down`.
 
-## Desenvolvedora
-Giulia Samogin
+## Endereços principais
+| Endereço | O que é |
+|---|---|
+| http://localhost:8080/swagger-ui.html | Documentação e teste das rotas |
+| http://localhost:8080/dashboard | Painel de monitoramento |
+| http://localhost:8080/actuator/health | Saúde da aplicação e do banco |
+| http://localhost:8080/clientes | Lista de clientes (rota pública) |
+| http://localhost:9090/targets | Prometheus |
+| http://localhost:9411 | Zipkin |
+
+As demais rotas (como restaurantes, produtos e pedidos) exigem login. Use o Swagger para fazer login e clicar em **Authorize**.
+
+## Integração contínua
+A cada push na branch `main`, o GitHub Actions (workflow **CI Delivery API**)
