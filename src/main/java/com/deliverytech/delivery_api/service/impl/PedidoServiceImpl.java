@@ -19,6 +19,8 @@ import com.deliverytech.delivery_api.repository.PedidoRepository;
 import com.deliverytech.delivery_api.repository.ProdutoRepository;
 import com.deliverytech.delivery_api.repository.RestauranteRepository;
 import com.deliverytech.delivery_api.service.PedidoService;
+import com.deliverytech.delivery_api.service.MetricsService;
+import io.micrometer.core.instrument.Timer;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -49,10 +51,30 @@ public class PedidoServiceImpl implements PedidoService {
     @Autowired
     private ProdutoRepository produtoRepository;
 
-    @Override
+    @Autowired
+    private MetricsService metricsService;
+
+        @Override
     public PedidoResponseDTO criarPedido(PedidoDTO dto) {
-        Cliente cliente = clienteRepository.findById(dto.getClienteId())
-                .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado com ID: " + dto.getClienteId()));
+        Timer.Sample cronometro = metricsService.iniciarTimerPedido();
+        metricsService.incrementarPedidosProcessados();
+        try {
+            PedidoResponseDTO resultado = processarCriacaoPedido(dto);
+            metricsService.incrementarPedidosComSucesso();
+            if (resultado.getValorTotal() != null) {
+                metricsService.adicionarReceita(resultado.getValorTotal().doubleValue());
+            }
+            return resultado;
+        } catch (RuntimeException e) {
+            metricsService.incrementarPedidosComErro();
+            throw e;
+        } finally {
+            metricsService.finalizarTimerPedido(cronometro);
+        }
+    }
+
+    private PedidoResponseDTO processarCriacaoPedido(PedidoDTO dto) {
+        Cliente cliente = clienteRepository.findById(dto.getClienteId())                .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado com ID: " + dto.getClienteId()));
         if (!cliente.getAtivo()) {
             throw new BusinessException("Cliente inativo não pode fazer pedidos");
         }
