@@ -1,9 +1,67 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Alameda</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><script src="js/api.js"></script></head><body><header id="nav"></header>
-<section class="hero"><h1>Os restaurantes dos Jardins,<br>à sua porta.</h1>
-<p>Da Avenida Paulista à Oscar Freire, a mesa que você escolhe chega até você com o cuidado que ela merece.</p>
-<a class="btn" href="#restaurantes">Ver restaurantes da sua região</a></section>
-<main id="restaurantes"><h2>Restaurantes da sua região</h2><input id="q" placeholder="Buscar pelo nome ou pela cozinha" oninput="show()"><div id="m" class="msg"></div><div id="g" class="grid"></div></main>
-<script>nav();let L=[];
-(async()=>{try{L=await api('/restaurantes');show()}catch(e){msg($('m'),e.message)}})();
-function show(){const q=$('q').value.toLowerCase();
-$('g').innerHTML=L.filter(r=>((r.nome||'')+(r.categoria||'')).toLowerCase().includes(q)).map(r=>`<a class="card" href="cardapio.html?id=${r.id}"><div class="mono">${(r.nome||'?')[0]}</div><div class="in"><h3>${r.nome}</h3><p class="muted"><i>${r.categoria||''}</i><br>${r.endereco||''}</p><p class="muted">Entrega ${brl(r.taxaEntrega)}, em ${r.tempoEntrega||'?'} min</p></div></a>`).join('')||'<p class="muted">Nenhum restaurante encontrado.</p>'}</script></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alameda</title>
+  
+  <!-- Fontes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Estilos e Scripts -->
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/api.js"></script>
+</head>
+<body>
+
+  <header id="nav"></header>
+
+  <section class="hero">
+    <h1>Os restaurantes dos Jardins,<br>à sua porta.</h1>
+    <p>Da Avenida Paulista à Oscar Freire, a mesa que você escolhe chega até você com o cuidado que ela merece.</p>
+    <a class="btn" href="#restaurantes">Ver restaurantes da sua região</a>
+  </section>
+
+  <main id="restaurantes">
+    <h2>Restaurantes da sua região</h2>
+    <input id="q" placeholder="Buscar pelo nome ou pela cozinha" oninput="show()">
+    <div id="m" class="msg"></div>
+    <div id="g" class="grid"></div>
+  </main>
+
+  <script>
+    nav();
+    let L = [];
+
+    (async () => {
+      try {
+        L = await api('/restaurantes');
+        show();
+      } catch (e) {
+        msg($('m'), e.message);
+      }
+    })();
+
+    function show() {
+      const q = $('q').value.toLowerCase();$('g').innerHTML = L.filter(r => 
+        ((r.nome || '') + (r.categoria || '')).toLowerCase().includes(q)
+      ).map(r => `
+        <a class="card" href="cardapio.html?id=${r.id}">
+          <div class="mono">${(r.nome || '?')[0]}</div>
+          <div class="in">
+            <h3>${r.nome}</h3>
+            <p class="muted">
+              <i>${r.categoria || ''}</i><br>
+              ${r.endereco || ''}
+            </p>
+            <p class="muted">Entrega ${brl(r.taxaEntrega)}, em ${r.tempoEntrega || '?'} min</p>
+          </div>
+        </a>
+      `).join('') || '<p class="muted">Nenhum restaurante encontrado.</p>';
+    }
+  </script>
+
+</body>
+</html>

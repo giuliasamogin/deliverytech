@@ -1,14 +1,139 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Alameda</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><script src="js/api.js"></script></head><body><header id="nav"></header>
-<main><h1 id="t"></h1><p class="muted" id="sub"></p><div id="m" class="msg"></div>
-<h2>Pedidos recebidos</h2><div id="ol" class="grid"></div>
-<h2>Cardápio</h2><div class="split"><div id="pl" class="grid"></div>
-<div class="side"><h3>Novo produto</h3><label>Nome</label><input id="pn"><label>Categoria</label><input id="pc" placeholder="Ex: Massas"><label>Preço</label><input id="pp" type="number" step="0.01"><button onclick="addp()">Adicionar ao cardápio</button></div></div></main>
-<script>nav();const s=sess();
-const NX={RECEBIDO:'CONFIRMADO',CONFIRMADO:'EM_PREPARO',EM_PREPARO:'SAIU_PARA_ENTREGA',SAIU_PARA_ENTREGA:'ENTREGUE'};
-async function load(){try{const rid=s.restauranteId,R=await api('/restaurantes/'+rid);$('t').textContent=R.nome;$('sub').textContent=R.categoria+', '+R.endereco;
-$('pl').innerHTML=(await api('/produtos')).filter(p=>p.restaurante&&p.restaurante.id==rid).map(p=>`<div class="card"><div class="in"><h3>${p.nome}</h3><p class="muted">${p.categoria||''}</p><p class="price">${brl(p.preco)}</p><button class="sec" onclick="rm(${p.id})">Remover</button></div></div>`).join('')||'<p class="muted">Nenhum produto ainda. Cadastre o primeiro ao lado.</p>';
-$('ol').innerHTML=(await api('/pedidos/restaurante/'+rid)).sort((a,b)=>b.id-a.id).map(o=>{const n=NX[o.statusPedido];return `<div class="card"><div class="in"><h3>Pedido ${o.numeroPedido||'#'+o.id}</h3><p class="muted">${o.nomeCliente||''}, ${o.enderecoEntrega||''}</p><p class="status">${ST[o.statusPedido]||o.statusPedido}</p><p class="price">${brl(o.valorTotal)}</p>${n?`<button onclick="av(${o.id},'${n}')">Marcar como ${ST[n].toLowerCase()}</button>`:''}</div></div>`}).join('')||'<p class="muted">Nenhum pedido recebido ainda.</p>'}catch(x){msg($('m'),x.message)}}
-async function av(i,st){try{await api('/pedidos/'+i+'/status?status='+st,{method:'PUT'});load()}catch(x){msg($('m'),x.message)}}
-async function rm(i){try{await api('/produtos/'+i,{method:'DELETE'});load()}catch(x){msg($('m'),x.message)}}
-async function addp(){try{await api('/produtos',{method:'POST',body:{nome:$('pn').value,categoria:$('pc').value,preco:+$('pp').value,disponivel:true,restaurante:{id:+s.restauranteId}}});$('pn').value=$('pp').value='';load()}catch(x){msg($('m'),x.message)}}
-if(guard('RESTAURANTE'))load()</script></body></html>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alameda</title>
+  
+  <!-- Fontes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Estilos e Scripts -->
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/api.js"></script>
+</head>
+<body>
+
+  <header id="nav"></header>
+
+  <main>
+    <h1 id="t"></h1>
+    <p class="muted" id="sub"></p>
+    <div id="m" class="msg"></div>
+    
+    <h2>Pedidos recebidos</h2>
+    <div id="ol" class="grid"></div>
+    
+    <h2>Cardápio</h2>
+    <div class="split">
+      <div id="pl" class="grid"></div>
+      
+      <div class="side">
+        <h3>Novo produto</h3>
+        <label>Nome</label>
+        <input id="pn">
+        <label>Categoria</label>
+        <input id="pc" placeholder="Ex: Massas">
+        <label>Preço</label>
+        <input id="pp" type="number" step="0.01">
+        <button onclick="addp()">Adicionar ao cardápio</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    nav();
+    const s = sess();
+    const NX = { 
+      RECEBIDO: 'CONFIRMADO', 
+      CONFIRMADO: 'EM_PREPARO', 
+      EM_PREPARO: 'SAIU_PARA_ENTREGA', 
+      SAIU_PARA_ENTREGA: 'ENTREGUE' 
+    };
+
+    async function load() {
+      try {
+        const rid = s.restauranteId;
+        const R = await api('/restaurantes/' + rid);
+        
+        $('t').textContent = R.nome;
+        $('sub').textContent = R.categoria + ', ' + R.endereco;
+        
+        $('pl').innerHTML = (await api('/produtos'))
+          .filter(p => p.restaurante && p.restaurante.id == rid)
+          .map(p => `
+            <div class="card">
+              <div class="in">
+                <h3>${p.nome}</h3>
+                <p class="muted">${p.categoria || ''}</p>
+                <p class="price">${brl(p.preco)}</p>
+                <button class="sec" onclick="rm(${p.id})">Remover</button>
+              </div>
+            </div>
+          `).join('') || '<p class="muted">Nenhum produto ainda. Cadastre o primeiro ao lado.</p>';
+        
+        $('ol').innerHTML = (await api('/pedidos/restaurante/' + rid))
+          .sort((a, b) => b.id - a.id)
+          .map(o => {
+            const n = NX[o.statusPedido];
+            return `
+              <div class="card">
+                <div class="in">
+                  <h3>Pedido ${o.numeroPedido || '#' + o.id}</h3>
+                  <p class="muted">${o.nomeCliente || ''}, ${o.enderecoEntrega || ''}</p>
+                  <p class="status">${ST[o.statusPedido] || o.statusPedido}</p>
+                  <p class="price">${brl(o.valorTotal)}</p>
+                  ${n ? `<button onclick="av(${o.id}, '${n}')">Marcar como ${ST[n].toLowerCase()}</button>` : ''}
+                </div>
+              </div>
+            `;
+          }).join('') || '<p class="muted">Nenhum pedido recebido ainda.</p>';
+      } catch (x) {
+        msg($('m'), x.message);
+      }
+    }
+
+    async function av(i, st) {
+      try {
+        await api('/pedidos/' + i + '/status?status=' + st, { method: 'PUT' });
+        load();
+      } catch (x) {
+        msg($('m'), x.message);
+      }
+    }
+
+    async function rm(i) {
+      try {
+        await api('/produtos/' + i, { method: 'DELETE' });
+        load();
+      } catch (x) {
+        msg($('m'), x.message);
+      }
+    }
+
+    async function addp() {
+      try {
+        await api('/produtos', {
+          method: 'POST',
+          body: {
+            nome: $('pn').value,
+            categoria: $('pc').value,
+            preco: +$('pp').value,
+            disponivel: true,
+            restaurante: { id: +s.restauranteId }
+          }
+        });
+        $('pn').value =$('pp').value = '';
+        load();
+      } catch (x) {
+        msg($('m'), x.message);
+      }
+    }
+
+    if (guard('RESTAURANTE')) load();
+  </script>
+
+</body>
+</html>
