@@ -12,6 +12,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -73,10 +74,20 @@ public class ClienteServiceImpl implements ClienteService {
     }
 
     @Override
+    @Cacheable("clientes")
     @Transactional(readOnly = true)
     public List<ClienteResponseDTO> listarClientesAtivos() {
+        simulateDelay();
         return clienteRepository.findByAtivoTrue().stream()
                 .map(cliente -> modelMapper.map(cliente, ClienteResponseDTO.class))
                 .collect(Collectors.toList());
+    }
+
+    private void simulateDelay() {
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

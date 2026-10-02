@@ -1,5 +1,6 @@
 package com.deliverytech.delivery_api.config;
 
+import com.deliverytech.delivery_api.enums.Role;
 import com.deliverytech.delivery_api.model.Usuario;
 import com.deliverytech.delivery_api.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ public class DataInitializer implements CommandLineRunner {
                     .email("admin@delivery.com")
                     .senha(passwordEncoder.encode("123"))
                     .nome("Administrador")
+                    .role(Role.ADMIN)
                     .build();
 
             usuarioRepository.save(usuario);

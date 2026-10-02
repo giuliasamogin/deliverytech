@@ -1,0 +1,30 @@
+name: CI Delivery API
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Dar permissão ao mvnw
+        run: chmod +x mvnw
+
+      - name: Build e Testes
+        run: ./mvnw clean verify
+
+      - name: Gerar JAR
+        run: ./mvnw package -DskipTests
+
+      - name: Upload do JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: delivery-api
+          path: target/*.jar

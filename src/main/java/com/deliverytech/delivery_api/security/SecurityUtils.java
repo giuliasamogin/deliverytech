@@ -1,43 +1,59 @@
 package com.deliverytech.delivery_api.security;
 
 import com.deliverytech.delivery_api.model.Usuario;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 
 public class SecurityUtils {
 
-    // Obtém o usuário autêntico atual do contexto de segurança.
     public static Usuario getCurrentUser() {
-        Authentication auth = SecurityContextHolder
-            .getContext()
-            .getAuthentication();
-        
-        if (auth != null && auth.getPrincipal() instanceof Usuario) {
-            return (Usuario) auth.getPrincipal();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            return (Usuario) authentication.getPrincipal();
         }
-        
-        throw new AuthenticationCredentialsNotFoundException("Usuário não autenticado");
+
+        throw new RuntimeException("Usuário não autenticado");
     }
 
-    // Retorna o ID do usuário autenticado.
     public static Long getCurrentUserId() {
         return getCurrentUser().getId();
     }
 
-    // Verifica se o usuário atual possui um determinado papel (role).
-    // Exemplo: hasRole("RESTAURANTE") ou hasRole("CLIENTE")
+    public static String getCurrentUserEmail() {
+        return getCurrentUser().getEmail();
+    }
+
+    public static String getCurrentUserRole() {
+        return getCurrentUser().getRole().name();
+    }
+
+    public static Long getCurrentRestauranteId() {
+        return getCurrentUser().getRestauranteId();
+    }
+
     public static boolean hasRole(String role) {
-        Authentication auth = SecurityContextHolder
-            .getContext()
-            .getAuthentication();
-            
-        if (auth != null && auth.getAuthorities() != null) {
-            return auth.getAuthorities()
-                .stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_" + role));
+        try {
+            return getCurrentUser().getRole().name().equals(role);
+        } catch (Exception e) {
+            return false;
         }
-        
-        return false;
+    }
+
+    public static boolean isAdmin() {
+        return hasRole("ADMIN");
+    }
+
+    public static boolean isCliente() {
+        return hasRole("CLIENTE");
+    }
+
+    public static boolean isRestaurante() {
+        return hasRole("RESTAURANTE");
+    }
+
+    public static boolean isEntregador() {
+        return hasRole("ENTREGADOR");
     }
 }
