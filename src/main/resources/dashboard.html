@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel DeliveryTech</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #10151c; color: #e8eef5; margin: 0; padding: 24px; }
+    h1 { margin-top: 0; font-size: 22px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+    .card { background: #1b2430; border-radius: 10px; padding: 16px; }
+    .card small { display: block; color: #8fa3b8; margin-bottom: 6px; }
+    .card strong { font-size: 26px; }
+    #status { margin-top: 16px; color: #8fa3b8; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Painel de Monitoramento — DeliveryTech</h1>
+  <div class="grid" id="grid"></div>
+  <div id="status">Carregando...</div>
+
+  <script>
+    const MB = 1024 * 1024;
+    const campos = [
+      ['pedidos_total', 'Pedidos (total)', v => v],
+      ['pedidos_sucesso', 'Pedidos com sucesso', v => v],
+      ['pedidos_erro', 'Pedidos com erro', v => v],
+      ['receita_total', 'Receita total', v => 'R$ ' + Number(v).toFixed(2)],
+      ['tempo_medio_pedido', 'Tempo médio do pedido', v => Number(v).toFixed(1) + ' ms'],
+      ['tempo_medio_banco', 'Tempo médio do banco', v => Number(v).toFixed(1) + ' ms'],
+      ['memoria_usada', 'Memória usada', v => (v / MB).toFixed(0) + ' MB'],
+      ['memoria_max', 'Memória máxima', v => (v / MB).toFixed(0) + ' MB'],
+      ['cpu_usage', 'Uso de CPU', v => (v * 100).toFixed(1) + ' %'],
+      ['usuarios_ativos', 'Usuários ativos', v => v],
+      ['produtos_estoque', 'Produtos em estoque', v => v],
+      ['health_status', 'Saúde', v => v]
+    ];
+
+    async function atualizar() {
+      try {
+        const resp = await fetch('/dashboard/api/metrics');
+        const dados = await resp.json();
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        campos.forEach(([chave, rotulo, formatar]) => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          const small = document.createElement('small');
+          small.textContent = rotulo;
+          const strong = document.createElement('strong');
+          strong.textContent = formatar(dados[chave] ?? 0);
+          card.append(small, strong);
+          grid.appendChild(card);
+        });
+        document.getElementById('status').textContent =
+          'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+      } catch (e) {
+        document.getElementById('status').textContent = 'Não foi possível ler as métricas.';
+      }
+    }
+
+    atualizar();
+    setInterval(atualizar, 5000);
+  </script>
+</body>
+</html>
