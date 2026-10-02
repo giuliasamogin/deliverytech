@@ -1,0 +1,21 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Alameda</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><script src="js/api.js"></script></head><body><header id="nav"></header>
+<main class="narrow"><h1 id="tt"></h1><div class="tabs" id="tabs"></div><div id="f"></div><div id="m" class="msg"></div></main>
+<script>nav();const tp=new URLSearchParams(location.search).get('tipo')=='restaurante'?'restaurante':'cliente';let modo='entrar';
+const CAT=['Italiana','Brasileira','Japonesa','Mexicana','Árabe'];
+const CP={cliente:[['nome','Nome completo'],['email','Email','email'],['senha','Senha (mínimo 6 caracteres)','password'],['telefone','Telefone, só números'],['endereco','Endereço de entrega']],
+restaurante:[['nome','Nome do restaurante'],['categoria','Categoria','sel'],['endereco','Endereço'],['telefone','Telefone, só números'],['taxaEntrega','Taxa de entrega, até 50','number'],['tempoEntrega','Tempo de entrega em minutos, de 10 a 120','number'],['horarioFuncionamento','Horário, ex: 08:00-22:00'],['email','Email de acesso','email'],['senha','Senha (mínimo 6 caracteres)','password']]};
+const fld=([id,l,t])=>`<label>${l}</label>`+(t=='sel'?`<select id="${id}">${CAT.map(x=>`<option>${x}</option>`).join('')}</select>`:`<input id="${id}" type="${t||'text'}">`);
+function draw(){$('tt').textContent=tp=='cliente'?'Área do cliente':'Área do restaurante';
+$('tabs').innerHTML=['entrar','criar'].map(k=>`<a href="#" class="${modo==k?'on':''}" onclick="modo='${k}';draw();return false">${k=='entrar'?'Entrar':'Criar conta'}</a>`).join('');
+$('f').innerHTML=(modo=='entrar'?[['email','Email','email'],['senha','Senha','password']]:CP[tp]).map(fld).join('')+`<button onclick="${modo=='entrar'?'entrar()':'criar()'}">${modo=='entrar'?'Entrar':'Criar minha conta'}</button>`}
+const v=i=>$(i).value;
+async function tok(e,s){const d=await api('/api/auth/login',{method:'POST',body:{email:e,senha:s}});localStorage.clear();localStorage.setItem('token',d.token)}
+function go(){location=sess().role=='RESTAURANTE'?'restaurante.html':'index.html#restaurantes'}
+async function entrar(){try{await tok(v('email'),v('senha'));go()}catch(x){msg($('m'),x.message.startsWith('Sua sessão')?'Email ou senha incorretos.':x.message)}}
+async function criar(){try{const e=v('email'),s=v('senha'),n=v('nome');
+if(tp=='cliente'){await api('/api/auth/register',{method:'POST',body:{nome:n,email:e,senha:s,role:'CLIENTE'}});await tok(e,s);
+await api('/clientes',{method:'POST',body:{nome:n,email:e,telefone:v('telefone'),endereco:v('endereco')}})}
+else{const r=await api('/restaurantes',{method:'POST',body:{nome:n,categoria:v('categoria'),endereco:v('endereco'),telefone:v('telefone'),taxaEntrega:+v('taxaEntrega'),tempoEntrega:+v('tempoEntrega'),horarioFuncionamento:v('horarioFuncionamento')}});
+await api('/api/auth/register',{method:'POST',body:{nome:n,email:e,senha:s,role:'RESTAURANTE',restauranteId:r.id}});await tok(e,s)}
+go()}catch(x){msg($('m'),x.message)}}
+draw()</script></body></html>

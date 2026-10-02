@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>DeliveryTech</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 24px; }
+    h1 { color: #333; }
+    .card { background: white; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h3 { margin: 0 0 8px 0; }
+    .card p { margin: 4px 0; color: #666; }
+  </style>
+</head>
+<body>
+  <h1>Restaurantes Cadastrados</h1>
+  <div id="lista-restaurantes">Carregando...</div>
+
+  <script>
+    async function carregarRestaurantes() {
+      try {
+        const resposta = await fetch('/restaurantes');
+        const dados = await resposta.json();
+        const restaurantes = dados.data; // por causa do ApiResponseWrapper
+
+        const container = document.getElementById('lista-restaurantes');
+        container.innerHTML = '';
+
+        restaurantes.forEach(restaurante => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <h3>${restaurante.nome}</h3>
+            <p>Categoria: ${restaurante.categoria}</p>
+            <p>Avaliação: ${restaurante.avaliacao}</p>
+          `;
+          container.appendChild(card);
+        });
+      } catch (erro) {
+        document.getElementById('lista-restaurantes').textContent = 'Erro ao carregar restaurantes.';
+        console.error(erro);
+      }
+    }
+
+    carregarRestaurantes();
+  </script>
+</body>
+</html>

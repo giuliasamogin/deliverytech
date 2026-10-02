@@ -99,6 +99,7 @@ public class SecurityConfig {
 
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/restaurantes").permitAll()
+                .requestMatchers("/restaurantes", "/restaurantes/**").permitAll()
                 .requestMatchers("/api/produtos").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/dashboard", "/dashboard/**", "/dashboard.html").permitAll()                .requestMatchers("/clientes/status").permitAll()

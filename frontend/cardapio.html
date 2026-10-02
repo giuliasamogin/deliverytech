@@ -1,0 +1,20 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Alameda</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/style.css"><script src="js/api.js"></script></head><body><header id="nav"></header>
+<main><h1 id="t"></h1><p class="muted" id="sub"></p><div id="m" class="msg"></div>
+<div class="split"><div id="g" class="grid"></div>
+<div class="side"><h3>Seu pedido</h3><div id="cart" class="muted">Carrinho vazio</div>
+<label>Como receber</label><select id="tp" onchange="$('en').style.display=this.value=='e'?'':'none'"><option value="e">Entrega</option><option value="r">Retirada no local</option></select>
+<input id="en" placeholder="Endereço de entrega"><label>Pagamento</label><select id="pg"><option value="PIX">Pix</option><option value="CARTAO">Cartão</option><option value="DINHEIRO">Dinheiro</option></select>
+<button onclick="fin()">Fazer pedido</button><p class="muted" id="lg"></p></div></div></main>
+<script>nav();const rid=new URLSearchParams(location.search).get('id'),s=sess();let P=[],C={};
+(async()=>{try{const R=await api('/restaurantes/'+rid);$('t').textContent=R.nome;$('sub').textContent=R.categoria+', '+R.endereco+'. Entrega '+brl(R.taxaEntrega)+', em '+R.tempoEntrega+' min.';
+P=(await api('/produtos')).filter(p=>p.restaurante&&p.restaurante.id==rid&&p.disponivel!==false);
+$('g').innerHTML=P.map(p=>`<div class="card"><div class="in"><h3>${p.nome}</h3><p class="muted">${p.categoria||''}</p><p class="price">${brl(p.preco)}</p><button onclick="add(${p.id})">Adicionar</button></div></div>`).join('')||'<p class="muted">Este restaurante ainda está montando o cardápio.</p>';
+if(s&&s.role=='CLIENTE')$('en').value=(await api('/clientes/'+await cid())).endereco||'';
+else $('lg').innerHTML='Para pedir, <a href="conta.html?tipo=cliente">entre ou crie sua conta</a>.'}catch(x){msg($('m'),x.message)}})();
+function add(i){C[i]=(C[i]||0)+1;draw()}
+function rem(i){C[i]--;if(!C[i])delete C[i];draw();return false}
+function draw(){let t=0;const h=Object.keys(C).map(k=>{const p=P.find(x=>x.id==k);t+=p.preco*C[k];return C[k]+' × '+p.nome+' <a href="#" onclick="return rem('+k+')">tirar um</a>'});
+$('cart').innerHTML=h.length?h.join('<br>')+'<p class="price">Subtotal '+brl(t)+'</p>':'Carrinho vazio'}
+async function fin(){try{if(!s||s.role!='CLIENTE')throw new Error('Entre como cliente para fazer o pedido.');if(!Object.keys(C).length)throw new Error('Adicione pelo menos um item.');
+await api('/pedidos',{method:'POST',body:{clienteId:Number(await cid()),restauranteId:+rid,itens:Object.keys(C).map(k=>({produtoId:+k,quantidade:C[k]})),enderecoEntrega:$('tp').value=='e'?$('en').value:'Retirada no local',formaPagamento:$('pg').value}});
+location='pedidos.html'}catch(x){msg($('m'),x.message)}}</script></body></html>
