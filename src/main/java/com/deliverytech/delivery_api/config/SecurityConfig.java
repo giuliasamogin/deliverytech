@@ -101,6 +101,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/restaurantes").permitAll()
                 .requestMatchers("/api/produtos").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/dashboard", "/dashboard/**").permitAll()
                 .requestMatchers("/clientes/status").permitAll()
                 .requestMatchers(HttpMethod.GET, "/clientes").permitAll()
                 .requestMatchers("/clientes/cache/limpar").permitAll()
