@@ -34,3 +34,4 @@ build/
 .env
 
 frontend/
+hs_err_pid*.log

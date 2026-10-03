@@ -2601,3 +2601,525 @@ A pipeline de Integração Contínua está configurada no GitHub Actions. Qualqu
 •	Arquivo ci.yml configurado com os steps checkout, setup-java, build/testes, geração do JAR e upload-artifact.
 •	Push realizado na branch main do repositório remoto.
 •	Execução do workflow acompanhada na aba Actions do GitHub e todas as etapas concluídas com sucesso.
+
+
+## Encontro 31 — Observabilidade e Monitoramento da API
+Objetivo da Prática
+Instalar na API DeliveryTech uma “sala de monitoramento”: métricas (quantos pedidos, quanto tempo levam), health checks (o banco e os serviços externos estão vivos?), logs com número de protocolo (correlation ID), auditoria, alertas automáticos e um painel (dashboard) para acompanhar tudo em tempo real.
+Este encontro é um complemento criado ao comparar o seu projeto com o do professor. As peças abaixo existem no projeto dele e ainda não existem no seu. O roteiro foi montado para adicionar tudo sem quebrar o que já funciona (cache, Docker, JWT e CI/CD).
+A metáfora: a Sala de Monitoramento do prédio DeliveryTech Express
+Até aqui o prédio funciona: tem portaria, balcões, gerência e armazém. Só que, se algo der errado, ninguém percebe até o cliente reclamar. Observabilidade é instalar sensores, câmeras e livros de registro para saber o que está acontecendo lá dentro, em tempo real.
+•	Actuator = o quadro de sensores do prédio (energia, água, elevador). Ele publica os dados em endereços como /actuator/health.
+•	Health Indicators (config/monitoring/health) = o check-up diário: “o armazém (banco de dados) está aberto?” e “o fornecedor externo atende o telefone?”.
+•	Micrometer + MetricsService = os medidores: a catraca que conta pedidos (Counter), o cronômetro que mede quanto tempo levou (Timer) e o ponteiro de velocímetro que mostra o valor de agora (Gauge).
+•	Prometheus = o arquivista que passa a cada 15 segundos lendo os medidores e anotando num caderno.
+•	CorrelationIdFilter = a etiqueta de protocolo colada na encomenda na portaria. Todos os andares escrevem esse número nos seus registros, e assim dá para seguir uma encomenda do começo ao fim.
+•	AuditService = o livro de ocorrências: quem fez o quê, quando e em qual recurso.
+•	TracingService + Zipkin = o carimbo em cada andar por onde a encomenda passou, e o mapa da viagem com o tempo gasto em cada um.
+•	AlertService = a sirene: de 30 em 30 segundos confere os medidores e avisa se algo passou do limite.
+•	DashboardController + dashboard.html = o telão na recepção, que mostra os números ao vivo.
+•	CacheConfig = o balcão de consulta rápida (reforça o Encontro 26).
+Diagnóstico: o que o seu projeto tem de diferente do projeto do professor
+Peça	Professor	Seu projeto	O que fazer
+config/monitoring/audit/CorrelationIdFilter	Tem	Não tem	Criar (Etapa 7)
+config/monitoring/health/ (Database e ExternalService)	Tem	Não tem	Criar, trocando 2 imports (Etapa 4)
+config/monitoring/metrics/MicrometerConfig	Tem	Não tem	Criar, trocando 1 import (Etapa 5)
+service/ MetricsService, AuditService, TracingService	Tem	Não tem	Copiar sem alterar (Etapa 6)
+service/AlertService	Tem	Não tem	Copiar + @EnableScheduling (Etapa 8)
+controller/DashboardController e dashboard.html	Tem	Não tem	Criar (Etapa 9)
+resources/logback-spring.xml	Tem	Não tem	Versão simples (Etapa 12, opcional)
+config/CacheConfig	Tem	Só @EnableCaching	Opcional (Etapa 13)
+pom.xml (dependências de monitoramento)	Tem	Não tem	Adicionar (Etapa 1)
+resources/application.yml	Tem	Só .properties	NÃO copiar; usar o .properties
+resources/data.sql	Tem	Usa DataInitializer/DataLoader	NÃO copiar (duplicaria dados)
+templates/jwt-demo.html	Tem	Não tem	Ignorar: não faz parte deste tema
+
+Importante: eu não vi o application.yml, o logback-spring.xml nem o dashboard.html do professor, só os arquivos Java. Por isso, esses três aparecem aqui como versões simples e equivalentes. Se quiser deixar idêntico ao dele, é só enviar os arquivos.
+Atenção: versão do Spring Boot
+O seu projeto roda Spring Boot 3.2.5 (aparece no log do Docker). O código do professor usa pacotes de uma versão mais nova do Spring Boot. Se você copiar e colar, o VS Code vai marcar erro vermelho nos import. Troque assim:
+No código do professor	No seu projeto (Spring Boot 3.2.5)
+org.springframework.boot.health.contributor.Health	org.springframework.boot.actuate.health.Health
+org.springframework.boot.health.contributor.HealthIndicator	org.springframework.boot.actuate.health.HealthIndicator
+org.springframework.boot.micrometer.metrics.autoconfigure.MeterRegistryCustomizer	org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer
+
+Não atualize o Spring Boot do seu projeto para “ficar igual ao dele”: isso mexeria em tudo e poderia quebrar o que já funciona.
+Regras de ouro para não quebrar o sistema
+•	Trabalhe numa branch separada (um “rascunho paralelo”). O main, que já está funcionando e com CI verde, fica intocado até tudo dar certo.
+•	Uma etapa por vez. Depois de cada bloco, rode .\mvnw.cmd clean compile. Se terminar com BUILD SUCCESS, pode seguir.
+•	Faça um commit local a cada etapa verde. Se algo quebrar, você volta ao último ponto bom.
+•	Só faça o merge no `main` depois de testar com o Docker.
+Etapa 0 — Criar a branch de segurança
+O que é: é como fazer uma cópia de rascunho da planta do prédio. Você testa as reformas na cópia e, só quando estiver tudo certo, passa para a planta oficial.
+Comandos (terminal na pasta do projeto):
+git status
+git checkout -b observabilidade
+O git status deve mostrar “nothing to commit, working tree clean”. Se mostrar arquivos alterados, faça git add . e git commit -m "chore: ajustes" antes de continuar.
+Etapa 1 — Adicionar as dependências no pom.xml
+O que é: é a lista de compras. Antes de instalar os sensores, precisamos comprar as peças: Actuator (os sensores), Prometheus (o arquivista), Micrometer Tracing e Zipkin Reporter (o carimbo por andar e o envio do mapa da viagem).
+Arquivo:
+pom.xml
+Código (cole dentro da tag <dependencies>, antes do </dependencies>):
+<!-- Encontro 31: observabilidade -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-registry-prometheus</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-tracing-bridge-brave</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.zipkin.reporter2</groupId>
+    <artifactId>zipkin-reporter-brave</artifactId>
+</dependency>
+Cuidado ao editar o pom.xml: cole apenas as linhas acima, sem mexer em mais nada. Se alguma dessas dependências já existir no arquivo, não repita. Depois salve com Ctrl + S.
+Ponto de verificação:
+.\mvnw.cmd clean compile
+Deve terminar com BUILD SUCCESS. Depois, no painel Maven do VS Code, clique na seta circular para recarregar. Faça o commit: git add . e git commit -m "feat: dependencias de observabilidade".
+Etapa 2 — Configurar o application.properties
+O que é: é o “regulamento do quadro de sensores”: quais endereços ficam visíveis (health, metrics, prometheus), se o check-up mostra detalhes e para onde enviar o mapa da viagem (Zipkin).
+Arquivo:
+src/main/resources/application.properties
+Código (adicione no final do arquivo):
+# --- Encontro 31: observabilidade ---
+spring.application.name=delivery-api
+management.endpoints.web.exposure.include=health,info,metrics,prometheus
+management.endpoint.health.show-details=always
+management.tracing.sampling.probability=1.0
+management.zipkin.tracing.endpoint=http://localhost:9411/api/v2/spans
+Arquivo:
+src/main/resources/application-docker.properties
+Código (adicione no final):
+# Dentro do Docker, o Zipkin é outro container chamado "zipkin" (Etapa 15)
+management.zipkin.tracing.endpoint=http://zipkin:9411/api/v2/spans
+Se alguma chave já existir no seu arquivo (por exemplo spring.application.name), não repita. Se o Zipkin ainda não estiver rodando, aparecem avisos de “falha ao enviar spans” no log. Eles são normais e não derrubam a API. O Zipkin só entra na Etapa 15.
+Etapa 3 — Liberar as rotas de monitoramento na portaria (SecurityConfig)
+O que é: o segurança (JWT) barra quem não tem crachá, inclusive o Prometheus e o painel. Precisamos avisar na portaria que essas salas são de acesso livre.
+Arquivo:
+src/main/java/com/deliverytech/delivery_api/config/SecurityConfig.java
+Código:
+// SecurityConfig.java: dentro do authorizeHttpRequests(...), junto das outras rotas liberadas.
+// Precisa ficar ANTES da linha .anyRequest().authenticated()
+.requestMatchers("/actuator/**", "/dashboard", "/dashboard/**", "/dashboard.html").permitAll()
+Procure no SecurityConfig as linhas que já têm .requestMatchers(...).permitAll() (como as do login e do Swagger) e coloque essa linha junto delas. Ela precisa ficar antes do .anyRequest().authenticated().
+Para um trabalho de faculdade tudo bem deixar o monitoramento aberto. Em um sistema real, essas rotas ficariam restritas à equipe técnica.
+Etapa 4 — Health Indicators (o check-up diário)
+O que é: são dois “médicos” que o Actuator consulta em /actuator/health. Um confere se o banco de dados responde; o outro simula a chamada a um serviço externo (um gateway de pagamento fictício).
+Crie as pastas monitoring e, dentro dela, health, dentro de config (no VS Code: botão direito na pasta config → New Folder). As duas classes abaixo já estão adaptadas ao seu projeto: usam os imports do Spring Boot 3.2.5, e o nome do banco aparece sozinho (MySQL no Docker), em vez do “H2” fixo do professor. O serviço externo ganhou um limite de 2 segundos para não travar se a internet cair.
+Arquivo:
+src/main/java/com/deliverytech/delivery_api/config/monitoring/health/DatabaseHealthIndicator.java
+Código:
+package com.deliverytech.delivery_api.config.monitoring.health;
+ 
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.stereotype.Component;
+ 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
+ 
+@Component("database")
+public class DatabaseHealthIndicator implements HealthIndicator {
+ 
+    private final DataSource dataSource;
+ 
+    public DatabaseHealthIndicator(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+ 
+    @Override
+    public Health health() {
+        try (Connection connection = dataSource.getConnection()) {
+            String banco = connection.getMetaData().getDatabaseProductName();
+            if (connection.isValid(1)) {
+                return Health.up()
+                    .withDetail("database", banco)
+                    .withDetail("status", "Conectado")
+                    .withDetail("validationQuery", "SELECT 1")
+                    .build();
+            }
+            return Health.down()
+                .withDetail("database", banco)
+                .withDetail("error", "Conexão inválida")
+                .build();
+        } catch (SQLException e) {
+            return Health.down()
+                .withDetail("error", e.getMessage())
+                .build();
+        }
+    }
+}
+Arquivo:
+src/main/java/com/deliverytech/delivery_api/config/monitoring/health/ExternalServiceHealthIndicator.java
+Código:
+package com.deliverytech.delivery_api.config.monitoring.health;
+ 
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+ 
+@Component("externalService")
+public class ExternalServiceHealthIndicator implements HealthIndicator {
+ 
+    private final RestTemplate restTemplate;
+ 
+    public ExternalServiceHealthIndicator() {
+        // Timeout de 2 segundos: se a internet cair, o check não fica travado
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(2000);
+        factory.setReadTimeout(2000);
+        this.restTemplate = new RestTemplate(factory);
+    }
+ 
+    @Override
+    public Health health() {
+        try {
+            // Simula uma chamada para um serviço externo (gateway de pagamento)
+            String url = "https://httpbin.org/status/200";
+            restTemplate.getForObject(url, String.class);
+ 
+            return Health.up()
+                .withDetail("service", "Payment Gateway")
+                .withDetail("url", url)
+                .withDetail("status", "Disponível")
+                .build();
+ 
+        } catch (Exception e) {
+            return Health.down()
+                .withDetail("service", "Payment Gateway")
+                .withDetail("error", e.getMessage())
+                .withDetail("status", "Indisponível")
+                .build();
+        }
+    }
+}
+Se o computador estiver sem internet, o externalService aparece como DOWN, e o status geral do /actuator/health também. Isso é esperado: é o “fornecedor que não atendeu o telefone”, e não um defeito da sua API.
+Etapa 5 — MicrometerConfig (a etiqueta padrão dos medidores)
+O que é: cola uma etiqueta em todos os medidores (application=delivery-api, environment, version) para o arquivista saber de qual prédio cada número veio. Também faz os medidores ignorarem as visitas ao próprio /actuator, para não poluir os números.
+Arquivo:
+src/main/java/com/deliverytech/delivery_api/config/monitoring/metrics/MicrometerConfig.java
+Código (já adaptado ao Spring Boot 3.2.5):
+package com.deliverytech.delivery_api.config.monitoring.metrics;
+ 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.config.MeterFilter;
+import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+ 
+@Configuration
+public class MicrometerConfig {
+ 
+    @Bean
+    MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
+        return registry -> {
+            registry.config()
+                .commonTags("application", "delivery-api")
+                .commonTags("environment", "development")
+                .commonTags("version", "1.0.0")
+                .meterFilter(MeterFilter.deny(id -> {
+                    String uri = id.getTag("uri");
+                    return uri != null && uri.startsWith("/actuator");
+                }));
+        };
+    }
+}
+Ponto de verificação:
+.\mvnw.cmd clean compile
+Deve terminar com BUILD SUCCESS. Faça o commit: git add . e git commit -m "feat: health checks e micrometer config".
+Etapa 6 — MetricsService, AuditService e TracingService
+O que é: são três funcionários novos do Andar da Gerência:
+•	MetricsService é o dono do quadro de medidores. Cria as catracas (pedidos total, sucesso, erro, receita), os cronômetros (tempo do pedido e do banco) e os velocímetros (usuários ativos, estoque).
+•	AuditService é o livro de ocorrências: escreve em JSON “quem fez o quê” (ação do usuário, mudança de dados, evento de segurança), sempre com o número de protocolo.
+•	TracingService é o carimbador de andares: cria um “span” para cada passo do pedido (validar, calcular frete, pagar). É uma demonstração: só aparece no Zipkin se alguém chamar processarPedidoComTracing(...).
+Arquivos (na pasta service):
+src/main/java/com/deliverytech/delivery_api/service/MetricsService.java
+src/main/java/com/deliverytech/delivery_api/service/AuditService.java
+src/main/java/com/deliverytech/delivery_api/service/TracingService.java
+Copie os três exatamente como estão no projeto do professor, sem alterar nada. Os imports deles (io.micrometer..., org.slf4j...) são os mesmos no Spring Boot 3.2.5, então não precisam de ajuste. Eles dependem das dependências da Etapa 1: por isso a ordem importa.
+Etapa 7 — CorrelationIdFilter (a etiqueta de protocolo na portaria)
+O que é: um filtro que roda em toda requisição. Ele lê o número de protocolo do cabeçalho X-Correlation-ID (ou cria um novo), guarda no MDC (a “prancheta” que os logs consultam) e devolve o mesmo número na resposta. Assim, todos os logs de uma mesma requisição carregam o mesmo número.
+Arquivo:
+src/main/java/com/deliverytech/delivery_api/config/monitoring/audit/CorrelationIdFilter.java
+Copie exatamente como está no projeto do professor, sem alterar nada. O pacote dele (com.deliverytech.delivery_api.config.monitoring.audit) já bate com o seu.
+Etapa 8 — AlertService e @EnableScheduling
+O que é: a sirene. A cada 30 segundos o AlertService confere a taxa de erro, o tempo de resposta, a CPU e a memória e, se algo passar do limite, escreve um alerta no log. Para a sirene tocar sozinha de 30 em 30 segundos, o prédio precisa do “relógio agendador”, que se liga com @EnableScheduling. Sem ele, o AlertService compila, mas nunca roda.
+Arquivo:
+src/main/java/com/deliverytech/delivery_api/service/AlertService.java
+Copie exatamente como está (é o código que você me enviou).
+Arquivo:
+src/main/java/com/deliverytech/delivery_api/DeliveryApiApplication.java
+Código (adicione só o import e a anotação marcados):
+package com.deliverytech.delivery_api;
+ 
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.scheduling.annotation.EnableScheduling;   // <- novo import
+ 
+@SpringBootApplication
+@EnableCaching
+@EnableScheduling                                                    // <- nova anotação
+public class DeliveryApiApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(DeliveryApiApplication.class, args);
+    }
+}
+Etapa 9 — DashboardController e dashboard.html (o telão)
+O que é: o DashboardController junta os números dos medidores num JSON em /dashboard/api/metrics, e o /dashboard redireciona para a página dashboard.html, que mostra esses números e atualiza sozinha a cada 5 segundos. Sem o dashboard.html, o /dashboard cairia numa página de erro 404.
+Arquivo:
+src/main/java/com/deliverytech/delivery_api/controller/DashboardController.java
+Copie exatamente como está no projeto do professor. Depois, crie o arquivo da página:
+Arquivo:
+src/main/resources/static/dashboard.html
+Código (versão simples; o do professor pode ser diferente):
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Painel DeliveryTech</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #10151c; color: #e8eef5; margin: 0; padding: 24px; }
+    h1 { margin-top: 0; font-size: 22px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+    .card { background: #1b2430; border-radius: 10px; padding: 16px; }
+    .card small { display: block; color: #8fa3b8; margin-bottom: 6px; }
+    .card strong { font-size: 26px; }
+    #status { margin-top: 16px; color: #8fa3b8; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Painel de Monitoramento — DeliveryTech</h1>
+  <div class="grid" id="grid"></div>
+  <div id="status">Carregando...</div>
+ 
+  <script>
+    const MB = 1024 * 1024;
+    const campos = [
+      ['pedidos_total', 'Pedidos (total)', v => v],
+      ['pedidos_sucesso', 'Pedidos com sucesso', v => v],
+      ['pedidos_erro', 'Pedidos com erro', v => v],
+      ['receita_total', 'Receita total', v => 'R$ ' + Number(v).toFixed(2)],
+      ['tempo_medio_pedido', 'Tempo médio do pedido', v => Number(v).toFixed(1) + ' ms'],
+      ['tempo_medio_banco', 'Tempo médio do banco', v => Number(v).toFixed(1) + ' ms'],
+      ['memoria_usada', 'Memória usada', v => (v / MB).toFixed(0) + ' MB'],
+      ['memoria_max', 'Memória máxima', v => (v / MB).toFixed(0) + ' MB'],
+      ['cpu_usage', 'Uso de CPU', v => (v * 100).toFixed(1) + ' %'],
+      ['usuarios_ativos', 'Usuários ativos', v => v],
+      ['produtos_estoque', 'Produtos em estoque', v => v],
+      ['health_status', 'Saúde', v => v]
+    ];
+ 
+    async function atualizar() {
+      try {
+        const resp = await fetch('/dashboard/api/metrics');
+        const dados = await resp.json();
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        campos.forEach(([chave, rotulo, formatar]) => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          const small = document.createElement('small');
+          small.textContent = rotulo;
+          const strong = document.createElement('strong');
+          strong.textContent = formatar(dados[chave] ?? 0);
+          card.append(small, strong);
+          grid.appendChild(card);
+        });
+        document.getElementById('status').textContent =
+          'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+      } catch (e) {
+        document.getElementById('status').textContent = 'Não foi possível ler as métricas.';
+      }
+    }
+ 
+    atualizar();
+    setInterval(atualizar, 5000);
+  </script>
+</body>
+</html>
+Ponto de verificação:
+.\mvnw.cmd clean compile
+Deve terminar com BUILD SUCCESS. Faça o commit: git add . e git commit -m "feat: servicos de metricas, auditoria, alertas e dashboard".
+Etapa 10 — Testar tudo com o Docker
+O que é: é a inauguração da sala de monitoramento. Reconstruímos o prédio inteiro e visitamos cada sensor.
+Comandos:
+docker-compose down
+.\mvnw.cmd clean package -DskipTests
+docker-compose up --build
+Use docker-compose down sem o -v, para não apagar os dados do banco. Quando aparecer Started DeliveryApiApplication no log, teste:
+Endereço / comando	O que esperar
+http://localhost:8080/actuator/health	JSON com status e os componentes database (UP) e externalService (UP se houver internet).
+http://localhost:8080/actuator/prometheus	Uma página de texto longa com métricas, como jvm_memory_used_bytes{application="delivery-api"...}.
+http://localhost:8080/dashboard	O painel com os cartões de números, atualizando a cada 5 segundos.
+curl.exe -i http://localhost:8080/actuator/health	Entre os cabeçalhos da resposta aparece X-Correlation-ID.
+http://localhost:8080/swagger-ui.html	O Swagger continua funcionando, e a API como antes.
+
+Se algum desses endereços devolver 401, volte à Etapa 3: a linha do permitAll() não está valendo (confira se ela está antes do .anyRequest().authenticated()).
+Etapa 11 — Commit, push e merge no main
+O que é: com tudo testado, enviamos o rascunho ao GitHub, esperamos o robô (CI) aprovar e só então passamos para a planta oficial (main).
+Comandos:
+git add .
+git commit -m "feat: observabilidade (actuator, metricas, auditoria, alertas e dashboard)"
+git push origin observabilidade
+No GitHub, aba Actions, confira se o “CI Delivery API” ficou com ✅. Se ficou, faça o merge:
+git checkout main
+git merge observabilidade
+git push origin main
+Se algo quebrar e você quiser desistir: com tudo commitado na branch, basta git checkout main. O main está exatamente como antes. Se o CI ficar vermelho, copie o erro do log e peça ajuda antes do merge.
+Etapa 12 (opcional) — logback-spring.xml: logs com o número de protocolo
+O que é: o regulamento de como cada linha de log deve ser escrita. Esta versão simples faz toda linha mostrar o correlationId entre colchetes e manda o livro de ocorrências (AUDIT) para o console.
+Arquivo:
+src/main/resources/logback-spring.xml
+Código:
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+ 
+    <!-- Cada linha de log mostra o número de protocolo (correlationId) da requisição -->
+    <property name="LOG_PATTERN"
+              value="%d{HH:mm:ss.SSS} %-5level [%X{correlationId:-sem-id}] %logger{30} - %msg%n"/>
+ 
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+ 
+    <!-- O "livro de ocorrências" (AuditService) escreve neste logger -->
+    <logger name="AUDIT" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+ 
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+ 
+</configuration>
+Teste: suba o Docker, chame um endereço e veja nos logs algo como [3fa9c1d2e4b5a678]. Se aparecer [sem-id], o log foi escrito fora de uma requisição.
+Etapa 13 (opcional) — CacheConfig
+O que é: hoje o cache (Encontro 26) funciona no modo automático. O CacheConfig do professor deixa isso explícito: define o nome das três “prateleiras” de cache (produtos, pedidos, clientes).
+Arquivo:
+src/main/java/com/deliverytech/delivery_api/config/CacheConfig.java
+Código:
+package com.deliverytech.delivery_api.config;
+ 
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+ 
+@Configuration
+public class CacheConfig {
+ 
+    @Bean
+    public CacheManager cacheManager() {
+        return new ConcurrentMapCacheManager("produtos", "pedidos", "clientes");
+    }
+}
+Cuidado: com esse arquivo, só esses três nomes de cache existem. Se algum @Cacheable("outroNome") do seu projeto usar um nome diferente, a API vai dar erro “Cannot find cache named”. Procure por @Cacheable no projeto antes de adicionar. Se tiver só "clientes", está seguro.
+Etapa 14 (opcional) — Ligar os medidores no PedidoServiceImpl
+O que é: até aqui os medidores existem, mas ninguém aperta a catraca. O painel vai mostrar zeros nos pedidos. Esta etapa liga a catraca e o cronômetro dentro da criação de pedidos. Nada quebra se você não fizer: só os números do painel ficam parados.
+Arquivo:
+src/main/java/com/deliverytech/delivery_api/service/impl/PedidoServiceImpl.java
+Código (padrão a seguir):
+// PedidoServiceImpl.java: o padrão (ajuste o nome do método para o seu, ex.: criarPedido)
+ 
+import io.micrometer.core.instrument.Timer;
+// ...
+ 
+private final MetricsService metricsService;   // novo campo (se a classe usa @RequiredArgsConstructor, só isso basta)
+ 
+public PedidoResponseDTO criarPedido(PedidoDTO dto) {
+    Timer.Sample cronometro = metricsService.iniciarTimerPedido();   // liga o cronômetro
+    metricsService.incrementarPedidosProcessados();                  // catraca: +1 pedido recebido
+    try {
+ 
+        // ... TODO o código que já existe no método continua aqui, sem mudar ...
+ 
+        metricsService.incrementarPedidosComSucesso();               // catraca: +1 sucesso
+        return resultado;                                            // o return que já existia
+    } catch (RuntimeException e) {
+        metricsService.incrementarPedidosComErro();                  // catraca: +1 erro
+        throw e;                                                     // o erro continua subindo normalmente
+    } finally {
+        metricsService.finalizarTimerPedido(cronometro);             // desliga o cronômetro
+    }
+}
+Eu não vi o seu PedidoServiceImpl, então use isso como molde. Se preferir o código pronto, envie o arquivo e eu adapto.
+Etapa 15 (opcional) — Prometheus e Zipkin no Docker Compose
+O que é: o arquivista (Prometheus) e o mapa da viagem (Zipkin) viram dois containers novos no navio, ao lado da api e do db. Esta é a etapa que mostra para que serve o Docker Compose: com um comando sobem todos os containers.
+Arquivo:
+docker-compose.yml
+Código (adicione dentro de services):
+  # Adicione estes dois serviços dentro de "services:", com o mesmo recuo (2 espaços) do "api:" e do "db:"
+  zipkin:
+    image: openzipkin/zipkin
+    ports:
+      - "9411:9411"
+ 
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+Arquivo (novo, na raiz do projeto, ao lado do docker-compose.yml):
+prometheus.yml
+Código:
+global:
+  scrape_interval: 15s
+ 
+scrape_configs:
+  - job_name: 'delivery-api'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api:8080']
+Rode docker-compose up --build. Depois acesse http://localhost:9090 (Prometheus, menu Status → Targets, onde o alvo delivery-api deve estar “UP”) e http://localhost:9411 (Zipkin, botão “Run Query” depois de fazer algumas chamadas na API).
+Estrutura de pastas esperada ao final
+projeto/
+├── prometheus.yml                         (opcional, Etapa 15)
+├── docker-compose.yml                     (Zipkin e Prometheus só na Etapa 15)
+├── pom.xml                                (novas dependências)
+└── src/main/
+    ├── java/com/deliverytech/delivery_api/
+    │   ├── DeliveryApiApplication.java    (+ @EnableScheduling)
+    │   ├── config/
+    │   │   ├── CacheConfig.java           (opcional, Etapa 13)
+    │   │   ├── SecurityConfig.java        (rotas de monitoramento liberadas)
+    │   │   └── monitoring/
+    │   │       ├── audit/CorrelationIdFilter.java
+    │   │       ├── health/DatabaseHealthIndicator.java
+    │   │       ├── health/ExternalServiceHealthIndicator.java
+    │   │       └── metrics/MicrometerConfig.java
+    │   ├── controller/DashboardController.java
+    │   └── service/
+    │       ├── AlertService.java
+    │       ├── AuditService.java
+    │       ├── MetricsService.java
+    │       └── TracingService.java
+    └── resources/
+        ├── application.properties         (+ bloco de observabilidade)
+        ├── application-docker.properties  (+ endereço do Zipkin)
+        ├── logback-spring.xml             (opcional, Etapa 12)
+        └── static/dashboard.html
+Resultado final do encontro
+A API DeliveryTech passa a ter uma sala de monitoramento: expõe sua saúde e suas métricas, marca cada requisição com um número de protocolo, registra auditoria, confere alertas automaticamente e mostra os números num painel. Tudo foi acrescentado numa branch separada e só entrou no main depois de testado, sem quebrar o cache, o Docker, o JWT nem o CI/CD.
+Checklist do encontro
+•	Branch observabilidade criada e commits feitos a cada etapa verde.
+•	Dependências do Actuator, Prometheus, Micrometer Tracing e Zipkin adicionadas no pom.xml.
+•	Configurações de observabilidade no application.properties e no application-docker.properties.
+•	Rotas /actuator/** e /dashboard/** liberadas no SecurityConfig.
+•	Health indicators e MicrometerConfig criados com os imports do Spring Boot 3.2.5.
+•	MetricsService, AuditService, TracingService e AlertService criados; @EnableScheduling ativado.
+•	CorrelationIdFilter criado e header X-Correlation-ID aparecendo nas respostas.
+•	DashboardController e dashboard.html criados; painel abrindo em /dashboard.
+•	Projeto testado com docker-compose up --build; CI verde na aba Actions; merge no main feito.
+•	Opcionais: logback, CacheConfig, medidores no PedidoServiceImpl, Prometheus e Zipkin no Compose.
