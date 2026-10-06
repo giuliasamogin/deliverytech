@@ -5,7 +5,8 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no arquivo .env}
       MYSQL_DATABASE: delivery
     ports:
-      - "3306:3306"
+      # 127.0.0.1 = só o seu computador acessa o banco (antes, a rede inteira podia tentar)
+      - "127.0.0.1:3306:3306"
     volumes:
       - dbdata:/var/lib/mysql
     healthcheck:
@@ -31,12 +32,12 @@ services:
   zipkin:
     image: openzipkin/zipkin
     ports:
-      - "9411:9411"
+      - "127.0.0.1:9411:9411"
 
   prometheus:
     image: prom/prometheus
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
 

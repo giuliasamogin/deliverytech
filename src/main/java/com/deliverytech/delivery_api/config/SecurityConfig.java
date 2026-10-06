@@ -1,6 +1,6 @@
 package com.deliverytech.delivery_api.config;
 
-import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -12,7 +12,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 
@@ -44,12 +43,12 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
 
-    DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
 
-    provider.setUserDetailsService(authService);
-    provider.setPasswordEncoder(passwordEncoder);
+        provider.setUserDetailsService(authService);
+        provider.setPasswordEncoder(passwordEncoder);
 
-    return provider;
+        return provider;
     }
 
     @Bean
@@ -81,6 +80,7 @@ public class SecurityConfig {
 
             .authorizeHttpRequests(auth -> auth
 
+                // Arquivos do site
                 .requestMatchers(
                     "/",
                     "/**.html",
@@ -89,6 +89,7 @@ public class SecurityConfig {
                     "/**.ico"
                 ).permitAll()
 
+                // Documentação da API (Swagger)
                 .requestMatchers(
                     "/swagger-ui/**",
                     "/swagger-ui.html",
@@ -97,30 +98,40 @@ public class SecurityConfig {
                     "/webjars/**"
                 ).permitAll()
 
+                // Login e cadastro
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/restaurantes").permitAll()
-                .requestMatchers("/restaurantes", "/restaurantes/**").permitAll()
-                .requestMatchers("/api/produtos").permitAll()
-                .requestMatchers(HttpMethod.GET, "/produtos", "/produtos/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/produtos", "/produtos/**").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/dashboard", "/dashboard/**", "/dashboard.html").permitAll()                .requestMatchers("/clientes/status").permitAll()
-                .requestMatchers(HttpMethod.GET, "/clientes").permitAll()
-                .requestMatchers("/clientes/cache/limpar").permitAll()
-                .requestMatchers("/h2-console/**").permitAll()
 
+                // Restaurantes e produtos: qualquer pessoa pode VER, mas mexer exige login
+                .requestMatchers(HttpMethod.GET, "/restaurantes", "/restaurantes/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/restaurantes").permitAll()
+                .requestMatchers(HttpMethod.GET, "/produtos", "/produtos/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/produtos").permitAll()
+
+                // A página de cadastro de restaurante ainda cria o restaurante antes do login.
+                // Na Fase 3 isso passa para dentro da API e esta linha sai.
+                .requestMatchers(HttpMethod.POST, "/restaurantes").permitAll()
+
+                // Monitoramento: só o que o painel e o Prometheus precisam
+                .requestMatchers(
+                    "/actuator/health",
+                    "/actuator/health/**",
+                    "/actuator/info",
+                    "/actuator/metrics",
+                    "/actuator/metrics/**",
+                    "/actuator/prometheus"
+                ).permitAll()
+
+                .requestMatchers("/dashboard", "/dashboard/**", "/dashboard.html").permitAll()
+                .requestMatchers("/clientes/status").permitAll()
+
+                // Tudo o que não está acima exige login
+                // (inclui GET /clientes e /clientes/cache/limpar, que antes eram abertos)
                 .anyRequest().authenticated()
             )
 
             .addFilterBefore(
                 jwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class
-            )
-
-            .headers(headers ->
-                headers.frameOptions(
-                    HeadersConfigurer.FrameOptionsConfig::disable
-                )
             );
 
         return http.build();
@@ -129,15 +140,18 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration configuration =
-                new CorsConfiguration();
+        CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOriginPatterns(
-                Arrays.asList("*")
+        // Só o seu site (Live Server) pode chamar a API pelo navegador
+        configuration.setAllowedOrigins(
+                List.of(
+                    "http://127.0.0.1:5500",
+                    "http://localhost:5500"
+                )
         );
 
         configuration.setAllowedMethods(
-                Arrays.asList(
+                List.of(
                     "GET",
                     "POST",
                     "PUT",
@@ -146,19 +160,12 @@ public class SecurityConfig {
                 )
         );
 
-        configuration.setAllowedHeaders(
-                Arrays.asList("*")
-        );
-
-        configuration.setAllowCredentials(true);
+        configuration.setAllowedHeaders(List.of("*"));
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
 
-        source.registerCorsConfiguration(
-                "/**",
-                configuration
-        );
+        source.registerCorsConfiguration("/**", configuration);
 
         return source;
     }
