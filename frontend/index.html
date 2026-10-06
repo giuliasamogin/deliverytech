@@ -4,14 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Alameda</title>
+  
+  <!-- Fontes do Google -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Estilos e Scripts Principais -->
   <link rel="stylesheet" href="css/style.css?v=3">
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
 </head>
 <body>
+
   <header id="nav"></header>
 
   <section class="carrossel" id="car"></section>
@@ -27,10 +32,26 @@
     <div id="m" class="msg"></div>
 
     <div class="promos">
-      <div class="promo" style="background-image:url(https://images.pexels.com/photos/5908255/pexels-photo-5908255.jpeg?auto=compress&cs=tinysrgb&w=700)" onclick="busca('pizza')"><div><h3>Pizzas</h3><span>Saindo do forno agora</span></div></div>
-      <div class="promo" style="background-image:url(https://images.pexels.com/photos/31286666/pexels-photo-31286666.jpeg?auto=compress&cs=tinysrgb&w=700)" onclick="busca('sushi')"><div><h3>Japonesa</h3><span>Frescos e bem servidos</span></div></div>
-      <div class="promo" style="background-image:url(https://loremflickr.com/700/340/dessert?lock=23)" onclick="busca('sobremesa')"><div><h3>Sobremesas</h3><span>Para fechar com chave de ouro</span></div></div>
+      <div class="promo" style="background-image:url(https://images.pexels.com/photos/5908255/pexels-photo-5908255.jpeg?auto=compress&cs=tinysrgb&w=700)" onclick="busca('pizza')">
+        <div>
+          <h3>Pizzas</h3>
+          <span>Saindo do forno agora</span>
+        </div>
+      </div>
+      <div class="promo" style="background-image:url(https://images.pexels.com/photos/31286666/pexels-photo-31286666.jpeg?auto=compress&cs=tinysrgb&w=700)" onclick="busca('sushi')">
+        <div>
+          <h3>Japonesa</h3>
+          <span>Frescos e bem servidos</span>
+        </div>
+      </div>
+      <div class="promo" style="background-image:url(https://loremflickr.com/700/340/dessert?lock=23)" onclick="busca('sobremesa')">
+        <div>
+          <h3>Sobremesas</h3>
+          <span>Para fechar com chave de ouro</span>
+        </div>
+      </div>
     </div>
+
     <div id="cats" class="cats"></div>
 
     <h2>Restaurantes</h2>
@@ -41,44 +62,83 @@
 
     <h2>Como funciona</h2>
     <div class="passos">
-      <div class="passo"><b>1</b><h3>Escolha</h3><p class="muted">Navegue pelos restaurantes da sua região e veja o cardápio completo.</p></div>
-      <div class="passo"><b>2</b><h3>Peça</h3><p class="muted">Monte o carrinho, informe o endereço e escolha como pagar.</p></div>
-      <div class="passo"><b>3</b><h3>Receba</h3><p class="muted">Acompanhe o pedido em tempo real, do preparo até a sua porta.</p></div>
+      <div class="passo">
+        <b>1</b>
+        <h3>Escolha</h3>
+        <p class="muted">Navegue pelos restaurantes da sua região e veja o cardápio completo.</p>
+      </div>
+      <div class="passo">
+        <b>2</b>
+        <h3>Peça</h3>
+        <p class="muted">Monte o carrinho, informe o endereço e escolha como pagar.</p>
+      </div>
+      <div class="passo">
+        <b>3</b>
+        <h3>Receba</h3>
+        <p class="muted">Acompanhe o pedido em tempo real, do preparo até a sua porta.</p>
+      </div>
     </div>
   </main>
 
   <footer>
-    <div><span class="logo">Alameda</span><p>Os melhores restaurantes da sua região, entregues com o cuidado que merecem.</p></div>
-    <div><p>Para clientes<br>Para restaurantes parceiros<br>Ajuda</p></div>
+    <div>
+      <span class="logo">Alameda</span>
+      <p>Os melhores restaurantes da sua região, entregues com o cuidado que merecem.</p>
+    </div>
+    <div>
+      <p>Para clientes<br>Para restaurantes parceiros<br>Ajuda</p>
+    </div>
   </footer>
 
   <script>
     nav();
+
     const SL = [
       { img: pex(5908255, 1600), kw: 'pizza', t: 'Pizza quentinha, direto do forno', s: 'Peça nos melhores restaurantes da região' },
       { img: pex(31415302, 1600), kw: 'sushi', t: 'Sushi fresco em poucos minutos', s: 'Combinados, temakis e muito mais' },
       { img: pex(33213590, 1600), kw: 'burger', t: 'Hambúrguer artesanal, sem fila', s: 'Suculento, do jeito que você gosta' },
       { kw: 'friends,dinner,eating', t: 'Boa comida, boa companhia', s: 'Chame quem você gosta e peça sem sair de casa' }
     ];
+
     let sl = 0;
+
     $('car').innerHTML = SL.map((x, n) => `
       <div class="slide ${n ? '' : 'on'}" style="background-image:url('${x.img || foto(x.kw, 30 + n, 1600, 700)}')">
-        <div class="txt"><h1>${x.t}</h1><p>${x.s}</p><a class="btn" href="#restaurantes">Ver restaurantes</a></div>
+        <div class="txt">
+          <h1>${x.t}</h1>
+          <p>${x.s}</p>
+          <a class="btn" href="#restaurantes">Ver restaurantes</a>
+        </div>
       </div>`).join('') +
       '<div class="dots">' + SL.map((x, n) => `<button class="${n ? '' : 'on'}" onclick="irSlide(${n})" aria-label="Slide ${n + 1}"></button>`).join('') + '</div>';
+
     function irSlide(n) {
       sl = (n + SL.length) % SL.length;
       document.querySelectorAll('.slide').forEach((e, i) => e.classList.toggle('on', i == sl));
       document.querySelectorAll('.dots button').forEach((e, i) => e.classList.toggle('on', i == sl));
     }
+
     setInterval(() => irSlide(sl + 1), 5000);
-    function busca(t) { $('q').value = t; show(); location = '#restaurantes'; }
+
+    function busca(t) { 
+      $('q').value = t; 
+      show(); 
+      location = '#restaurantes'; 
+    }
 
     let R = [], P = [], cat = '';
 
     (async () => {
-      try { R = await api('/restaurantes'); } catch (e) { msg($('m'), e.message); }
-      try { P = await api('/produtos'); } catch (e) { P = []; }
+      try { 
+        R = await api('/restaurantes'); 
+      } catch (e) { 
+        msg($('m'), e.message); 
+      }
+      try { 
+        P = await api('/produtos'); 
+      } catch (e) { 
+        P = []; 
+      }
       chips();
       show();
     })();
@@ -87,12 +147,12 @@
       const cs = [...new Set(R.map(r => r.categoria).filter(Boolean))];
       $('cats').innerHTML = [''].concat(cs).map(c =>
         `<button class="chip ${cat === c ? 'on' : ''}" onclick="cat='${c}';chips();show()">
-          ${c || 'Todos'}</button>`).join('');
+          ${c || 'Todos'}
+        </button>`).join('');
     }
 
     function show() {
-      const q = slug($('q').value);
-      $('g').innerHTML = R.filter(r =>
+      const q = slug($('q').value);$('g').innerHTML = R.filter(r =>
         (!cat || r.categoria === cat) && slug((r.nome || '') + (r.categoria || '')).includes(q)
       ).map(r => `
         <a class="card" href="cardapio.html?id=${r.id}">

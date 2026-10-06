@@ -145,7 +145,7 @@
             clienteId: Number(await cid()),
             restauranteId: +rid,
             itens: Object.keys(C).map(k => ({ produtoId: +k, quantidade: C[k] })),
-            enderecoEntrega: $('tp').value == 'e' ? $('en').value : 'Retirada no local',
+            enderecoEntrega: $('tp').value == 'e' ?$('en').value : 'Retirada no local',
             formaPagamento: $('pg').value
           }
         });
