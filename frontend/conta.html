@@ -4,47 +4,55 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Alameda</title>
-  
-  <!-- Fontes -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Jost:wght@400;500&display=swap" rel="stylesheet">
-  
-  <!-- Estilos e Scripts -->
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=3">
   <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
 </head>
 <body>
 
   <header id="nav"></header>
 
-  <main class="narrow">
-    <h1 id="tt"></h1>
-    <div class="tabs" id="tabs"></div>
-    <div id="f"></div>
-    <div id="m" class="msg"></div>
-  </main>
+  <section class="auth">
+    <div class="auth-img" id="ai">
+      <div>
+        <h2>Boa comida a um clique de distância.</h2>
+        <p>Crie sua conta e peça nos melhores restaurantes da região.</p>
+      </div>
+    </div>
+
+    <div class="auth-form">
+      <h1 id="tt"></h1>
+      <div class="tabs" id="tabs"></div>
+      <div id="f"></div>
+      <div id="m" class="msg"></div>
+    </div>
+  </section>
 
   <script>
     nav();
     const tp = new URLSearchParams(location.search).get('tipo') == 'restaurante' ? 'restaurante' : 'cliente';
     let modo = 'entrar';
-    
+
+    $('ai').style.backgroundImage = `url(${foto(tp == 'cliente' ? 'friends,eating,dinner' : 'chef,kitchen', 41, 900, 1000)})`;
+
     const CAT = ['Italiana', 'Brasileira', 'Japonesa', 'Mexicana', 'Árabe'];
-    
+
     const CP = {
       cliente: [
-        ['nome', 'Nome completo'],
+        ['nome', 'Nome completo', 'text', 'Nome e sobrenome'],
         ['email', 'Email', 'email'],
         ['senha', 'Senha (mínimo 6 caracteres)', 'password'],
-        ['telefone', 'Telefone, só números'],
+        ['telefone', 'Telefone com DDD', 'tel'],
         ['endereco', 'Endereço de entrega']
       ],
       restaurante: [
         ['nome', 'Nome do restaurante'],
         ['categoria', 'Categoria', 'sel'],
         ['endereco', 'Endereço'],
-        ['telefone', 'Telefone, só números'],
+        ['telefone', 'Telefone com DDD', 'tel'],
         ['taxaEntrega', 'Taxa de entrega, até 50', 'number'],
         ['tempoEntrega', 'Tempo de entrega em minutos, de 10 a 120', 'number'],
         ['horarioFuncionamento', 'Horário, ex: 08:00-22:00'],
@@ -53,39 +61,59 @@
       ]
     };
 
-    const fld = ([id, l, t]) => `
-      <label>${l}</label>` + 
-      (t == 'sel' 
-        ? `<select id="${id}">${CAT.map(x => `<option>${x}</option>`).join('')}</select>` 
-        : `<input id="${id}" type="${t || 'text'}">`
-      );
+    const fld = ([id, l, t, ph]) => `<label>${l}</label>` +
+      (t == 'sel'
+        ? `<select id="${id}">${CAT.map(x => `<option>${x}</option>`).join('')}</select>`
+        : t == 'tel'
+          ? `<input id="${id}" type="text" inputmode="numeric" maxlength="15" placeholder="(11) 91234-5678" oninput="mascara(this)">`
+          : `<input id="${id}" type="${t || 'text'}" ${ph ? `placeholder="${ph}"` : ''}>`);
+
+    const v = i => $(i).value;
+    const tel = () => v('telefone').replace(/\D/g, '');
+
+    // Formata sozinho enquanto digita: (11) 91234-5678
+    function mascara(el) {
+      const d = el.value.replace(/\D/g, '').slice(0, 11);
+      el.value = d.length > 7 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+        : d.length > 2 ? `(${d.slice(0, 2)}) ${d.slice(2)}`
+        : d.length ? `(${d}` : '';
+    }
+
+    // Devolve o texto do primeiro erro encontrado, ou '' se estiver tudo certo
+    function validar() {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v('email'))) return 'Digite um email válido, com @ e ponto (ex: nome@email.com).';
+      if (modo == 'entrar') return v('senha') ? '' : 'Digite sua senha.';
+
+      const partes = v('nome').trim().split(/\s+/);
+      if (tp == 'cliente' && (partes.length < 2 || partes.some(p => p.length < 2) || !/^[\p{L}\s'-]+$/u.test(v('nome')))) {
+        return 'Digite nome e sobrenome, usando só letras.';
+      }
+      if (tp == 'restaurante' && v('nome').trim().length < 2) return 'Digite o nome do restaurante.';
+      if (v('senha').length < 6) return 'A senha precisa ter pelo menos 6 caracteres.';
+      if (!/^\d{2}9\d{8}$/.test(tel())) return 'Telefone inválido. Use DDD + 9 dígitos, ex: (11) 91234-5678.';
+      return '';
+    }
 
     function draw() {
       $('tt').textContent = tp == 'cliente' ? 'Área do cliente' : 'Área do restaurante';
-      
+      $('m').textContent = '';
+
       $('tabs').innerHTML = ['entrar', 'criar'].map(k => `
         <a href="#" class="${modo == k ? 'on' : ''}" onclick="modo='${k}'; draw(); return false">
           ${k == 'entrar' ? 'Entrar' : 'Criar conta'}
-        </a>
-      `).join('');
-      
-      $('f').innerHTML = (modo == 'entrar' 
-        ? [['email', 'Email', 'email'], ['senha', 'Senha', 'password']] 
+        </a>`).join('');
+
+      $('f').innerHTML = (modo == 'entrar'
+        ? [['email', 'Email', 'email'], ['senha', 'Senha', 'password']]
         : CP[tp]
       ).map(fld).join('') + `
         <button onclick="${modo == 'entrar' ? 'entrar()' : 'criar()'}">
           ${modo == 'entrar' ? 'Entrar' : 'Criar minha conta'}
-        </button>
-      `;
+        </button>`;
     }
 
-    const v = i => $(i).value;
-
     async function tok(e, s) {
-      const d = await api('/api/auth/login', { 
-        method: 'POST', 
-        body: { email: e, senha: s } 
-      });
+      const d = await api('/api/auth/login', { method: 'POST', body: { email: e, senha: s } });
       localStorage.clear();
       localStorage.setItem('token', d.token);
     }
@@ -95,6 +123,8 @@
     }
 
     async function entrar() {
+      const erro = validar();
+      if (erro) return msg($('m'), erro);
       try {
         await tok(v('email'), v('senha'));
         go();
@@ -104,36 +134,25 @@
     }
 
     async function criar() {
+      const erro = validar();
+      if (erro) return msg($('m'), erro);
       try {
-        const e = v('email'), s = v('senha'), n = v('nome');
-        
+        const e = v('email').trim(), s = v('senha'), n = v('nome').trim();
+
         if (tp == 'cliente') {
-          await api('/api/auth/register', { 
-            method: 'POST', 
-            body: { nome: n, email: e, senha: s, role: 'CLIENTE' } 
-          });
+          await api('/api/auth/register', { method: 'POST', body: { nome: n, email: e, senha: s, role: 'CLIENTE' } });
           await tok(e, s);
-          await api('/clientes', { 
-            method: 'POST', 
-            body: { nome: n, email: e, telefone: v('telefone'), endereco: v('endereco') } 
-          });
+          await api('/clientes', { method: 'POST', body: { nome: n, email: e, telefone: tel(), endereco: v('endereco') } });
         } else {
-          const r = await api('/restaurantes', { 
-            method: 'POST', 
-            body: { 
-              nome: n, 
-              categoria: v('categoria'), 
-              endereco: v('endereco'), 
-              telefone: v('telefone'), 
-              taxaEntrega: +v('taxaEntrega'), 
-              tempoEntrega: +v('tempoEntrega'), 
-              horarioFuncionamento: v('horarioFuncionamento') 
-            } 
+          const r = await api('/restaurantes', {
+            method: 'POST',
+            body: {
+              nome: n, categoria: v('categoria'), endereco: v('endereco'), telefone: tel(),
+              taxaEntrega: +v('taxaEntrega'), tempoEntrega: +v('tempoEntrega'),
+              horarioFuncionamento: v('horarioFuncionamento')
+            }
           });
-          await api('/api/auth/register', { 
-            method: 'POST', 
-            body: { nome: n, email: e, senha: s, role: 'RESTAURANTE', restauranteId: r.id } 
-          });
+          await api('/api/auth/register', { method: 'POST', body: { nome: n, email: e, senha: s, role: 'RESTAURANTE', restauranteId: r.id } });
           await tok(e, s);
         }
         go();
