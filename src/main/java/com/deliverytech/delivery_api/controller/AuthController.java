@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import com.deliverytech.delivery_api.dto.request.RegisterRequestDTO;
+import com.deliverytech.delivery_api.dto.request.RegisterRestauranteDTO;
+import com.deliverytech.delivery_api.enums.Role;
 import com.deliverytech.delivery_api.service.AuthService;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +58,7 @@ public class AuthController {
         }
     }
     
-    @Operation(summary = "Cadastro", description = "Cria uma conta de cliente ou de restaurante")
+    @Operation(summary = "Cadastro de cliente", description = "Cria uma conta de cliente")
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequestDTO request) {
 
@@ -65,8 +67,9 @@ public class AuthController {
                     .body(Map.of("message", "Este email já está cadastrado."));
         }
 
-        // Ninguém pode se cadastrar como administrador pelo site
-        if (request.getRole() == null || "ADMIN".equals(request.getRole().name())) {
+        // Por aqui só se cria conta de cliente. Restaurante tem rota própria (abaixo)
+        // e administrador não se cria pelo site.
+        if (request.getRole() != Role.CLIENTE) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "Tipo de conta não permitido."));
         }
@@ -75,6 +78,26 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("message", "Conta criada com sucesso."));
+    }
+
+    @Operation(summary = "Cadastro de restaurante", description = "Cria o restaurante e a conta de acesso dele de uma vez")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Restaurante criado com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "409", description = "Email já cadastrado")
+    })
+    @PostMapping("/register-restaurante")
+    public ResponseEntity<?> registerRestaurante(@Valid @RequestBody RegisterRestauranteDTO request) {
+
+        if (authService.existsByEmail(request.getEmail())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "Este email já está cadastrado."));
+        }
+
+        authService.criarRestauranteComUsuario(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("message", "Restaurante criado com sucesso."));
     }
 
 }

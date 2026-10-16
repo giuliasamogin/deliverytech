@@ -107,10 +107,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/produtos", "/produtos/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/produtos").permitAll()
 
-                // A página de cadastro de restaurante ainda cria o restaurante antes do login.
-                // Na Fase 3 isso passa para dentro da API e esta linha sai.
-                .requestMatchers(HttpMethod.POST, "/restaurantes").permitAll()
-
                 // Monitoramento: só o que o painel e o Prometheus precisam
                 .requestMatchers(
                     "/actuator/health",

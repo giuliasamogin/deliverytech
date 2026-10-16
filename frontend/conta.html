@@ -144,15 +144,15 @@
           await tok(e, s);
           await api('/clientes', { method: 'POST', body: { nome: n, email: e, telefone: tel(), endereco: v('endereco') } });
         } else {
-          const r = await api('/restaurantes', {
+          await api('/api/auth/register-restaurante', {
             method: 'POST',
             body: {
               nome: n, categoria: v('categoria'), endereco: v('endereco'), telefone: tel(),
               taxaEntrega: +v('taxaEntrega'), tempoEntrega: +v('tempoEntrega'),
-              horarioFuncionamento: v('horarioFuncionamento')
+              horarioFuncionamento: v('horarioFuncionamento'),
+              email: e, senha: s
             }
           });
-          await api('/api/auth/register', { method: 'POST', body: { nome: n, email: e, senha: s, role: 'RESTAURANTE', restauranteId: r.id } });
           await tok(e, s);
         }
         go();
