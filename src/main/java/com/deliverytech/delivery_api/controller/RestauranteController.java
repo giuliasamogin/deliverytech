@@ -3,6 +3,7 @@ package com.deliverytech.delivery_api.controller;
 import com.deliverytech.delivery_api.dto.request.RestauranteReqDTO;
 import com.deliverytech.delivery_api.dto.response.ApiResponseWrapper;
 import com.deliverytech.delivery_api.dto.response.RestauranteResponseDTO;
+import com.deliverytech.delivery_api.security.SecurityUtils;
 import com.deliverytech.delivery_api.service.RestauranteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,6 +13,8 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,11 +27,12 @@ public class RestauranteController {
     @Autowired
     private RestauranteService restauranteService;
 
-    @Operation(summary = "Cadastrar restaurante", description = "Cria um novo restaurante no sistema")
+    @Operation(summary = "Cadastrar restaurante", description = "Cria um novo restaurante no sistema (só administrador; o cadastro público é feito em /api/auth/register-restaurante)")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Restaurante criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponseWrapper<RestauranteResponseDTO>> cadastrar(@Valid @RequestBody RestauranteReqDTO dto) {
         RestauranteResponseDTO criado = restauranteService.cadastrar(dto);
@@ -68,9 +72,14 @@ public class RestauranteController {
             @ApiResponse(responseCode = "200", description = "Restaurante atualizado com sucesso"),
             @ApiResponse(responseCode = "404", description = "Restaurante não encontrado")
     })
+    @PreAuthorize("hasAnyRole('RESTAURANTE','ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponseWrapper<RestauranteResponseDTO>> atualizar(
             @PathVariable Long id, @Valid @RequestBody RestauranteReqDTO dto) {
+        // Restaurante só altera o PRÓPRIO cadastro
+        if (!SecurityUtils.isAdmin() && !id.equals(SecurityUtils.getCurrentRestauranteId())) {
+            throw new AccessDeniedException("Você só pode alterar o seu restaurante.");
+        }
         RestauranteResponseDTO atualizado = restauranteService.atualizar(id, dto);
         ApiResponseWrapper<RestauranteResponseDTO> resposta = new ApiResponseWrapper<>(
             true, atualizado, "Restaurante atualizado com sucesso"
@@ -78,8 +87,9 @@ public class RestauranteController {
         return ResponseEntity.ok(resposta);
     }
 
-    @Operation(summary = "Remover restaurante", description = "Remove um restaurante do sistema")
+    @Operation(summary = "Remover restaurante", description = "Remove um restaurante do sistema (só administrador)")
     @ApiResponse(responseCode = "204", description = "Restaurante removido com sucesso")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         restauranteService.deletar(id);
