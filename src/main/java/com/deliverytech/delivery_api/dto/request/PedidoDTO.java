@@ -10,7 +10,7 @@ import java.util.List;
 
 public class PedidoDTO {
 
-    @NotNull(message = "ID do cliente é obrigatório")
+    // Não é mais obrigatório e é ignorado: o pedido é sempre do cliente que fez login.
     private Long clienteId;
 
     @NotNull(message = "ID do restaurante é obrigatório")
