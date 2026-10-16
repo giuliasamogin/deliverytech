@@ -19,6 +19,21 @@ Sistema de delivery desenvolvido em Java 21 com Spring Boot. Gerencia clientes, 
 - Identificador de rastreio (X-Correlation-ID) em cada requisição
 - Carga automática de dados de teste ao iniciar
 
+## Frontend (projeto extracurricular)
+
+O curso pedia apenas a API (backend). O frontend, chamado **Alameda**, não fazia parte do que foi solicitado: foi uma iniciativa minha, criada para consumir a API e ver o sistema funcionando como um produto de verdade, com telas e não só rotas no Swagger.
+
+Ele foi feito em HTML, CSS e JavaScript puros e está na pasta [`frontend/`](frontend/). A página inicial tem:
+
+- Carrossel de destaques
+- Busca por restaurante ou prato
+- Filtro por categoria
+- Lista de restaurantes e de pratos, carregada da API
+
+**Ver o site:** [giuliasamogin.github.io/deliverytech/frontend](https://giuliasamogin.github.io/deliverytech/frontend/)
+
+> **Importante:** o GitHub Pages hospeda apenas o frontend. A API roda localmente, em Docker, então a versão online pode abrir sem restaurantes e pratos. Para ver o sistema completo, suba a API (veja "Como executar") e abra o `frontend/index.html` no navegador.
+
 ## Como executar
 Pré-requisitos: JDK 21 e Docker Desktop instalados.
 
